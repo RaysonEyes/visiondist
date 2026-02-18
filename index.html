@@ -1,0 +1,4141 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.jsdelivr.net; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src 'self' wss: https:; media-src 'self' blob:;">
+    <title>视距佳</title>
+    <link rel="stylesheet" href="styles.css">
+    <!-- MediaPipe Face Mesh -->
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/camera_utils/camera_utils.js" crossorigin="anonymous"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@mediapipe/face_mesh/face_mesh.js" crossorigin="anonymous"></script>
+    
+    <!-- Chart.js for trend charts -->
+    <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.1/dist/chart.umd.min.js"></script>
+    
+    <!-- PeerJS for P2P connection -->
+    <script src="https://cdn.jsdelivr.net/npm/peerjs@1.5.2/dist/peerjs.min.js"></script>
+    
+    <!-- 预定义关键函数避免加载顺序问题 -->
+    <script>
+        // 这些函数会在后面的script标签中被完整定义
+        // 这里只是占位，避免HTML中的onclick找不到函数
+        function showPage(pageId) { console.log('showPage will be defined later'); }
+        function updateNavActive(index) { console.log('updateNavActive will be defined later'); }
+        function startFocusing() { console.log('startFocusing will be defined later'); }
+        function stopFocusing() { console.log('stopFocusing will be defined later'); }
+        function openSettings() { console.log('openSettings will be defined later'); }
+        function closeSettings() { console.log('closeSettings will be defined later'); }
+        function exportData(format) { console.log('exportData will be defined later'); }
+        function applyFilters() { console.log('applyFilters will be defined later'); }
+        function clearFilters() { console.log('clearFilters will be defined later'); }
+        function changePageSize() { console.log('changePageSize will be defined later'); }
+        function goToPage(direction) { console.log('goToPage will be defined later'); }
+        function updateChart() { console.log('updateChart will be defined later'); }
+        function applyCustomDate() { console.log('applyCustomDate will be defined later'); }
+    </script>
+    <!-- 父窗口通信桥接 -->
+    <script src="parent-bridge.js"></script>
+</head>
+
+<body>
+    <!-- ===== 页面 1: 首页 ===== -->
+    <section class="page active" id="home">
+        <!-- 顶部渐变背景 -->
+        <div class="home-bg-gradient"></div>
+
+        <!-- 头部 -->
+        <div class="home-header">
+            <div class="header-left">
+                <h1 class="app-title">视距佳</h1>
+                <p class="app-subtitle">守护你的视力健康</p>
+            </div>
+            <div class="header-right">
+                <div class="vip-badge">
+                    <span class="vip-icon">👑</span>
+                    <span class="vip-text">VIP</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 今日数据卡片 -->
+        <div class="today-stats-card">
+            <div class="stats-card-inner">
+                <div class="stat-item">
+                    <div class="stat-icon">⏱️</div>
+                    <div class="stat-info">
+                        <span class="stat-value" id="todayTime">0</span>
+                        <span class="stat-unit">分钟</span>
+                        <span class="stat-label">今日监测</span>
+                    </div>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat-item">
+                    <div class="stat-icon">🎯</div>
+                    <div class="stat-info">
+                        <span class="stat-value" id="todayScore">100</span>
+                        <span class="stat-unit">分</span>
+                        <span class="stat-label">健康评分</span>
+                    </div>
+                </div>
+                <div class="stat-divider"></div>
+                <div class="stat-item">
+                    <div class="stat-icon">🔥</div>
+                    <div class="stat-info">
+                        <span class="stat-value" id="streakDays">7</span>
+                        <span class="stat-unit">天</span>
+                        <span class="stat-label">连续打卡</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 吉祥物区域 -->
+        <div class="mascot-section">
+            <div class="mascot-container" id="mascotContainer">
+                <!-- 吉祥物背景光晕 -->
+                <div class="mascot-glow"></div>
+
+                <svg class="mascot-svg" id="mascotSvg" viewBox="0 0 200 260" width="160" height="200">
+                    <defs>
+                        <!-- 身体渐变 - 柔和的天蓝色 -->
+                        <linearGradient id="bodyGrad" x1="0%" y1="0%" x2="100%" y2="100%">
+                            <stop offset="0%" stop-color="#A5E8FF" />
+                            <stop offset="50%" stop-color="#5FCFFF" />
+                            <stop offset="100%" stop-color="#38BDF8" />
+                        </linearGradient>
+                        <!-- 脸颊腮红 -->
+                        <radialGradient id="blushGrad" cx="50%" cy="50%" r="50%">
+                            <stop offset="0%" stop-color="#FFB6C1" stop-opacity="0.6" />
+                            <stop offset="100%" stop-color="#FFB6C1" stop-opacity="0" />
+                        </radialGradient>
+                        <!-- 身体阴影 -->
+                        <filter id="bodyShadow" x="-20%" y="-20%" width="140%" height="140%">
+                            <feDropShadow dx="0" dy="4" stdDeviation="4" flood-color="#0EA5E9" flood-opacity="0.3" />
+                        </filter>
+                    </defs>
+
+                    <!-- 身体阴影 -->
+                    <ellipse cx="100" cy="235" rx="50" ry="8" fill="rgba(0,0,0,0.1)" />
+
+                    <!-- 小星星装饰 -->
+                    <g class="stars">
+                        <text x="35" y="60" font-size="14" fill="#FFD700" opacity="0.8">✦</text>
+                        <text x="160" y="45" font-size="12" fill="#FFD700" opacity="0.6">✦</text>
+                        <text x="25" y="140" font-size="10" fill="#87CEEB" opacity="0.7">✧</text>
+                        <text x="175" y="130" font-size="11" fill="#87CEEB" opacity="0.7">✧</text>
+                    </g>
+
+                    <!-- 可爱的小脚丫 -->
+                    <g class="feet">
+                        <ellipse cx="75" cy="228" rx="18" ry="10" fill="#38BDF8" />
+                        <ellipse cx="125" cy="228" rx="18" ry="10" fill="#38BDF8" />
+                        <circle cx="65" cy="225" r="5" fill="#5FCFFF" />
+                        <circle cx="75" cy="222" r="5" fill="#5FCFFF" />
+                        <circle cx="85" cy="225" r="5" fill="#5FCFFF" />
+                        <circle cx="115" cy="225" r="5" fill="#5FCFFF" />
+                        <circle cx="125" cy="222" r="5" fill="#5FCFFF" />
+                        <circle cx="135" cy="225" r="5" fill="#5FCFFF" />
+                    </g>
+
+                    <!-- 圆润可爱的身体 -->
+                    <ellipse class="body-main" cx="100" cy="145" rx="70" ry="80" fill="url(#bodyGrad)"
+                        filter="url(#bodyShadow)" />
+
+                    <!-- 肚皮 - 浅色区域 -->
+                    <ellipse cx="100" cy="160" rx="45" ry="50" fill="#D4F5FF" opacity="0.5" />
+
+                    <!-- 可爱的小手 -->
+                    <g class="hands">
+                        <g class="left-hand" transform="rotate(-15, 35, 150)">
+                            <ellipse cx="35" cy="150" rx="18" ry="15" fill="#5FCFFF" />
+                            <circle cx="22" cy="142" r="6" fill="#5FCFFF" />
+                            <circle cx="28" cy="136" r="6" fill="#5FCFFF" />
+                            <circle cx="36" cy="134" r="6" fill="#5FCFFF" />
+                            <circle cx="44" cy="138" r="5" fill="#5FCFFF" />
+                        </g>
+                        <g class="right-hand">
+                            <ellipse cx="165" cy="150" rx="18" ry="15" fill="#5FCFFF" />
+                            <circle cx="178" cy="142" r="6" fill="#5FCFFF" />
+                            <circle cx="172" cy="136" r="6" fill="#5FCFFF" />
+                            <circle cx="164" cy="134" r="6" fill="#5FCFFF" />
+                            <circle cx="156" cy="138" r="5" fill="#5FCFFF" />
+                        </g>
+                    </g>
+
+                    <!-- 头顶触角 -->
+                    <g class="antenna">
+                        <path d="M70 75 Q60 45 55 30" stroke="#FFE066" stroke-width="6" fill="none"
+                            stroke-linecap="round" />
+                        <circle cx="55" cy="28" r="10" fill="#FFE066" />
+                        <circle cx="55" cy="28" r="5" fill="#FFEB99" />
+
+                        <path d="M130 75 Q140 45 145 30" stroke="#FFE066" stroke-width="6" fill="none"
+                            stroke-linecap="round" />
+                        <circle cx="145" cy="28" r="10" fill="#FFE066" />
+                        <circle cx="145" cy="28" r="5" fill="#FFEB99" />
+                    </g>
+
+                    <!-- 脸部表情 -->
+                    <g class="face" id="mascotFace">
+                        <ellipse cx="55" cy="150" rx="15" ry="10" fill="url(#blushGrad)" />
+                        <ellipse cx="145" cy="150" rx="15" ry="10" fill="url(#blushGrad)" />
+
+                        <g class="eyes" id="mascotEyes">
+                            <ellipse cx="75" cy="130" rx="20" ry="22" fill="white" />
+                            <ellipse cx="78" cy="132" rx="12" ry="14" fill="#333" />
+                            <ellipse cx="82" cy="128" rx="5" ry="6" fill="white" />
+                            <ellipse cx="74" cy="136" rx="3" ry="3" fill="white" opacity="0.5" />
+
+                            <ellipse cx="125" cy="130" rx="20" ry="22" fill="white" />
+                            <ellipse cx="122" cy="132" rx="12" ry="14" fill="#333" />
+                            <ellipse cx="118" cy="128" rx="5" ry="6" fill="white" />
+                            <ellipse cx="126" cy="136" rx="3" ry="3" fill="white" opacity="0.5" />
+                        </g>
+
+                        <g class="mouth" id="mascotMouth">
+                            <path d="M90 170 Q100 185 110 170" stroke="#FF6B9D" stroke-width="4" fill="none"
+                                stroke-linecap="round" />
+                            <path d="M85 168 Q90 170 95 168" stroke="#FF6B9D" stroke-width="2" fill="none" />
+                            <path d="M105 168 Q110 170 115 168" stroke="#FF6B9D" stroke-width="2" fill="none" />
+                        </g>
+                    </g>
+                </svg>
+
+                <!-- 互动特效容器 -->
+                <div class="mascot-particles" id="mascotParticles"></div>
+
+                <!-- 对话气泡 -->
+                <div class="mascot-bubble" id="mascotBubble">
+                    <span class="bubble-text">点我互动~</span>
+                </div>
+            </div>
+
+            <!-- 吉祥物下方的提示文字 -->
+            <div class="mascot-hint">
+                <span class="hint-icon">💡</span>
+                <span class="hint-text">点击视视开始互动</span>
+            </div>
+        </div>
+
+        <!-- 快捷功能区 -->
+        <div class="quick-actions">
+            <div class="quick-action-card main-action" onclick="showPage('timer'); updateNavActive(2);">
+                <div class="action-icon-wrapper">
+                    <div class="action-icon-bg"></div>
+                    <span class="action-icon">👁️</span>
+                </div>
+                <div class="action-info">
+                    <h3>开始监测</h3>
+                    <p>实时检测用眼距离和姿势</p>
+                </div>
+                <div class="action-arrow">→</div>
+            </div>
+
+            <div class="quick-action-grid">
+                <div class="quick-action-item" onclick="showZenModeModal()">
+                    <div class="item-icon">🧘</div>
+                    <span class="item-label">专注模式</span>
+                </div>
+                <div class="quick-action-item" onclick="showPlayModeModal()">
+                    <div class="item-icon">⏱️</div>
+                    <span class="item-label">计时模式</span>
+                </div>
+                <div class="quick-action-item" onclick="showAchievementsModal()">
+                    <div class="item-icon">🏆</div>
+                    <span class="item-label">成就系统</span>
+                </div>
+                <div class="quick-action-item" onclick="showPage('stats'); updateNavActive(3);">
+                    <div class="item-icon">📊</div>
+                    <span class="item-label">数据报告</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 底部功能卡片 -->
+        <div class="feature-cards">
+            <div class="feature-card card-gradient-blue" onclick="showPage('stats'); updateNavActive(3);">
+                <div class="card-decoration"></div>
+                <div class="card-content">
+                    <div class="card-icon-box">📈</div>
+                    <div class="card-text">
+                        <h3>健康记录</h3>
+                        <p>查看详细数据</p>
+                    </div>
+                </div>
+            </div>
+            <div class="feature-card card-gradient-purple" onclick="showPage('profile'); updateNavActive(4);">
+                <div class="card-decoration"></div>
+                <div class="card-content">
+                    <div class="card-icon-box">⚙️</div>
+                    <div class="card-text">
+                        <h3>个人设置</h3>
+                        <p>自定义提醒</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== 页面 2: 统计页 ===== -->
+    <section class="page" id="stats">
+        <div class="stats-header">
+            <h1>健康统计</h1>
+            <p class="stats-subtitle">👁️ 以下为您的视距和姿势数据统计</p>
+        </div>
+
+        <!-- 累计统计 -->
+        <div class="stats-summary-card">
+            <h2 class="section-title">📊 累计统计</h2>
+            <div class="summary-grid">
+                <div class="summary-item">
+                    <div class="summary-value" id="totalSessions">0</div>
+                    <div class="summary-label">监测次数</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-value" id="totalDuration">0</div>
+                    <div class="summary-label">累计时长(分)</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-value" id="totalViolations">0</div>
+                    <div class="summary-label">违规次数</div>
+                </div>
+                <div class="summary-item">
+                    <div class="summary-value" id="avgScore">0</div>
+                    <div class="summary-label">平均评分</div>
+                </div>
+            </div>
+        </div>
+
+        <!-- 趋势图表 -->
+        <div class="stats-chart-section">
+            <div class="chart-header">
+                <h2 class="section-title">📈 健康趋势</h2>
+                <div class="chart-controls">
+                    <select id="chartPeriod" class="chart-select" onchange="updateChart()">
+                        <option value="week">最近一周</option>
+                        <option value="month">最近一月</option>
+                        <option value="quarter">最近三月</option>
+                        <option value="custom">自定义</option>
+                    </select>
+                </div>
+            </div>
+            
+            <!-- 自定义日期选择 -->
+            <div id="customDateRange" class="custom-date-range hidden">
+                <input type="date" id="startDate" class="date-input">
+                <span class="date-separator">至</span>
+                <input type="date" id="endDate" class="date-input">
+                <button class="btn-apply" onclick="applyCustomDate()">应用</button>
+            </div>
+            
+            <!-- 图表容器 -->
+            <div class="chart-container">
+                <canvas id="trendChart"></canvas>
+            </div>
+            
+            <!-- 图表说明 -->
+            <div class="chart-legend">
+                <div class="legend-item">
+                    <span class="legend-dot" style="background: #ef4444;"></span>
+                    <span class="legend-label">距离过近次数</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-dot" style="background: #f59e0b;"></span>
+                    <span class="legend-label">姿势不正次数</span>
+                </div>
+                <div class="legend-item">
+                    <span class="legend-dot" style="background: #22c55e;"></span>
+                    <span class="legend-label">健康评分</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 历史记录 -->
+        <div class="stats-history-section">
+            <div class="history-header">
+                <h2 class="section-title">📅 历史记录</h2>
+                <div class="history-toolbar">
+                    <button class="toolbar-btn" onclick="exportData('csv')">
+                        <span class="btn-icon">📥</span>
+                        <span class="btn-text">导出CSV</span>
+                    </button>
+                    <button class="toolbar-btn" onclick="exportData('json')">
+                        <span class="btn-icon">📄</span>
+                        <span class="btn-text">导出JSON</span>
+                    </button>
+                </div>
+            </div>
+            
+            <!-- 筛选和分页控制 -->
+            <div class="history-controls">
+                <div class="filter-group">
+                    <label class="filter-label">日期筛选:</label>
+                    <input type="date" id="filterStartDate" class="filter-input" onchange="applyFilters()">
+                    <span class="filter-separator">至</span>
+                    <input type="date" id="filterEndDate" class="filter-input" onchange="applyFilters()">
+                    <button class="btn-clear" onclick="clearFilters()">清除</button>
+                </div>
+                <div class="pagination-group">
+                    <label class="filter-label">每页显示:</label>
+                    <select id="pageSize" class="page-select" onchange="changePageSize()">
+                        <option value="20">20条</option>
+                        <option value="50">50条</option>
+                        <option value="100">100条</option>
+                        <option value="all">全部</option>
+                    </select>
+                </div>
+            </div>
+            
+            <div id="historyList" class="history-list">
+                <!-- 历史记录将通过JavaScript动态生成 -->
+                <div class="empty-state">
+                    <div class="empty-icon">📝</div>
+                    <div class="empty-text">暂无监测记录</div>
+                    <div class="empty-hint">开始一次监测后，这里会显示详细记录</div>
+                </div>
+            </div>
+            
+            <!-- 分页控制 -->
+            <div id="paginationControls" class="pagination-controls hidden">
+                <button class="page-btn" onclick="goToPage('prev')" id="prevBtn">
+                    <span>← 上一页</span>
+                </button>
+                <div class="page-info">
+                    <span id="pageInfo">第 1 页 / 共 1 页</span>
+                </div>
+                <button class="page-btn" onclick="goToPage('next')" id="nextBtn">
+                    <span>下一页 →</span>
+                </button>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== 页面 3: 监测页 ===== -->
+    <section class="page" id="timer">
+        <!-- 监测摄像头容器 -->
+        <div class="monitor-container" id="monitorContainer">
+            <video id="monitorVideo" autoplay playsinline muted webkit-playsinline 
+                   style="display: block; width: 100%; height: 100%; object-fit: cover;"></video>
+            <canvas id="monitorCanvas" style="position: absolute; top: 0; left: 0;"></canvas>
+            <div class="monitor-overlay">
+                <span class="monitor-label" id="distanceIndicator">距离:--</span>
+                <span class="monitor-label" id="postureIndicator">倾斜:--</span>
+            </div>
+            <div class="camera-status" id="cameraStatus">
+                <span class="status-dot"></span>
+                <span class="status-text">摄像头就绪</span>
+            </div>
+        </div>
+
+        <!-- 待机状态 -->
+        <div id="timerIdleMode">
+            <div class="timer-header">
+                <h1>视距监测</h1>
+            </div>
+
+            <!-- 计时器显示 -->
+            <div class="timer-display-container">
+                <div class="timer-circle">
+                    <svg class="timer-progress" viewBox="0 0 200 200">
+                        <circle class="timer-bg" cx="100" cy="100" r="90" />
+                        <circle class="timer-fill" cx="100" cy="100" r="90" />
+                    </svg>
+                    <div class="timer-content">
+                        <span class="timer-time" id="timerDisplay">25:00</span>
+                        <span class="timer-label" id="cameraTip">点击开始启用摄像头</span>
+                    </div>
+                </div>
+            </div>
+
+            <button class="start-btn" onclick="startFocusing()">开始监测</button>
+        </div>
+
+        <!-- 专注中状态 -->
+        <div id="timerFocusingMode" class="hidden">
+            <!-- 顶部计时器和设置 -->
+            <div class="focusing-header">
+                <div class="focusing-timer">
+                    <div class="time-display" id="focusingTimeDisplay">25:00</div>
+                    <div class="time-label">监测中...</div>
+                </div>
+                <button class="settings-trigger" onclick="openSettings()">⚙️</button>
+            </div>
+
+            <!-- 实时监测数值 -->
+            <div class="monitor-values-compact">
+                <div class="monitor-value-item">
+                    <span class="value-label">当前距离</span>
+                    <span class="value-number" id="distanceValue">--</span>
+                    <span class="value-unit">cm</span>
+                </div>
+                <div class="monitor-value-item">
+                    <span class="value-label">头部倾斜</span>
+                    <span class="value-number" id="angleValue">--</span>
+                    <span class="value-unit">°</span>
+                </div>
+            </div>
+
+            <!-- 健康统计卡片 -->
+            <div class="motivation-stats">
+                <div class="motivation-header">
+                    <span class="motivation-title">📊 健康统计</span>
+                    <span class="photo-count" id="photoCount" onclick="showPhotoGallery()">📷 0张</span>
+                </div>
+                <div class="motivation-content">
+                    <div class="motivation-row">
+                        <div class="motivation-item">
+                            <span class="motivation-value" id="totalFocusCount">0</span>
+                            <span class="motivation-label">累计次数</span>
+                        </div>
+                        <div class="motivation-item">
+                            <span class="motivation-value highlight" id="totalPoints">0</span>
+                            <span class="motivation-label">健康积分</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 本次监测统计 -->
+            <div class="session-stats">
+                <div class="session-stats-header">📈 本次监测</div>
+                <div class="session-stats-row">
+                    <div class="session-stat-item">
+                        <span class="stat-count" id="headTiltCount">0</span>
+                        <span class="stat-label">偏头次数</span>
+                    </div>
+                    <div class="session-stat-item">
+                        <span class="stat-count" id="distanceCount">0</span>
+                        <span class="stat-label">距离过近</span>
+                    </div>
+                    <div class="session-stat-item">
+                        <span class="stat-count" id="overtimeCount">0</span>
+                        <span class="stat-label">超时次数</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 正激励统计面板 -->
+            <div class="reward-stats-panel" id="rewardStatsPanel" style="display: none;">
+                <h3 class="panel-title">🏆 正激励统计</h3>
+                <div class="ideal-distance-tracker" id="idealDistanceTracker" style="display: none;">
+                    <div class="tracker-label">⭐ 保持理想距离中</div>
+                    <div class="tracker-time" id="currentStreak">0:00</div>
+                    <div class="tracker-hint">距离庆祝: <span id="nextCelebration">60</span>秒</div>
+                </div>
+                <div class="reward-grid">
+                    <div class="reward-item">
+                        <div class="reward-value" id="totalIdealTime">0</div>
+                        <div class="reward-label">累计分钟</div>
+                    </div>
+                    <div class="reward-item">
+                        <div class="reward-value" id="rewardPoints">0</div>
+                        <div class="reward-label">累计积分</div>
+                    </div>
+                </div>
+                <div class="reward-progress">
+                    <div class="progress-bar" id="streakProgress" style="width: 0%"></div>
+                </div>
+                <div class="progress-hint">距离下次奖励: <span id="nextRewardTime">30</span>分钟</div>
+            </div>
+
+            <!-- 异常记录面板 -->
+            <div class="violation-records-panel" id="violationRecords" style="display: none;">
+                <h3 class="panel-title">📷 异常记录（最新3次）</h3>
+                <div class="violation-photos"></div>
+            </div>
+            
+            <!-- 离开提示面板 -->
+            <div class="away-notification-panel" id="awayNotificationPanel" style="display: none;">
+                <div class="away-notification-content">
+                    <div class="away-icon">👋</div>
+                    <div class="away-title">检测到您已离开画面</div>
+                    <div class="away-stats">
+                        <div class="away-stat-item">
+                            <span class="away-stat-label">已离开</span>
+                            <span class="away-stat-value" id="awayDuration">0秒</span>
+                        </div>
+                        <div class="away-stat-divider"></div>
+                        <div class="away-stat-item">
+                            <span class="away-stat-label">自动结束倒计时</span>
+                            <span class="away-stat-value countdown" id="awayCountdown">5:00</span>
+                        </div>
+                    </div>
+                    <div class="away-hint">
+                        <span class="away-hint-icon">💡</span>
+                        <span class="away-hint-text">请回到摄像头前继续监测</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 结束按钮 -->
+            <button class="stop-btn" onclick="stopFocusing()">结束监测</button>
+        </div>
+
+        <!-- 即时奖励动画 -->
+        <div class="instant-reward" id="instantReward">
+            <div class="reward-content">
+                <span class="reward-emoji">🎉</span>
+                <span class="reward-message">太棒了！+1积分</span>
+            </div>
+        </div>
+
+        <!-- 庆祝动画 -->
+        <div class="celebration-overlay" id="celebration">
+            <div class="celebration-content">
+                <div class="celebration-emoji">🎉</div>
+                <div class="celebration-title">太棒了！</div>
+                <div class="celebration-subtitle">保持理想距离 <span class="celebration-minutes">1</span> 分钟</div>
+            </div>
+            <div class="confetti-container"></div>
+        </div>
+
+        <!-- 积分奖励动画 -->
+        <div class="points-reward-overlay" id="pointsReward">
+            <div class="points-reward-content">
+                <div class="points-emoji">🏆</div>
+                <div class="points-value">+10</div>
+                <div class="points-subtitle">累计理想距离达成奖励！</div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== 页面 4: 专注计划页 ===== -->
+    <section class="page" id="focus">
+        <div class="focus-header">
+            <h1>专注计划</h1>
+            <div class="actions">
+                <span class="action-btn">✏️</span>
+                <span class="action-btn add-btn" onclick="addNewTask()">⊕</span>
+            </div>
+        </div>
+
+        <div class="task-list">
+            <div class="task-card" onclick="showPage('timer'); updateNavActive(2);">
+                <div class="left-bar orange"></div>
+                <div class="task-info">
+                    <div class="title-row">
+                        <span class="title">阅读学习</span>
+                        <span class="duration">25m</span>
+                    </div>
+                    <div class="tag-row">
+                        <span class="tag">📖 学习</span>
+                    </div>
+                </div>
+                <div class="task-stats">
+                    <div class="stat">
+                        <span class="value">25</span>
+                        <span class="label">分钟</span>
+                    </div>
+                    <div class="stat">
+                        <span class="value">12</span>
+                        <span class="label">次数</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="task-card" onclick="showPage('timer'); updateNavActive(2);">
+                <div class="left-bar blue"></div>
+                <div class="task-info">
+                    <div class="title-row">
+                        <span class="title">办公工作</span>
+                        <span class="duration">45m</span>
+                    </div>
+                    <div class="tag-row">
+                        <span class="tag">💼 工作</span>
+                    </div>
+                </div>
+                <div class="task-stats">
+                    <div class="stat">
+                        <span class="value">45</span>
+                        <span class="label">分钟</span>
+                    </div>
+                    <div class="stat">
+                        <span class="value">8</span>
+                        <span class="label">次数</span>
+                    </div>
+                </div>
+            </div>
+
+            <div class="task-card" onclick="showPage('timer'); updateNavActive(2);">
+                <div class="left-bar purple"></div>
+                <div class="task-info">
+                    <div class="title-row">
+                        <span class="title">休闲娱乐</span>
+                        <span class="duration">20m</span>
+                    </div>
+                    <div class="tag-row">
+                        <span class="tag">🎮娱乐</span>
+                        <span class="tag warning">⏱️限时提醒</span>
+                    </div>
+                </div>
+                <div class="task-stats">
+                    <div class="stat">
+                        <span class="value">20</span>
+                        <span class="label">分钟</span>
+                    </div>
+                    <div class="stat">
+                        <span class="value">5</span>
+                        <span class="label">次数</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-card challenge-card" onclick="openChallengeModal()">
+                <div class="left-bar red"></div>
+                <div class="task-info">
+                    <div class="title-row">
+                        <span class="title">🎯 挑战模式</span>
+                        <span class="duration badge-new">NEW</span>
+                    </div>
+                    <div class="tag-row">
+                        <span class="tag">👥 双人对战</span>
+                        <span class="tag special">⚡ 实时PK</span>
+                    </div>
+                </div>
+                <div class="task-stats">
+                    <div class="stat">
+                        <span class="value">VS</span>
+                        <span class="label">对战</span>
+                    </div>
+                    <div class="stat">
+                        <span class="value">0</span>
+                        <span class="label">胜场</span>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="task-card history-card" onclick="showChallengeHistory()">
+                <div class="left-bar green"></div>
+                <div class="task-info">
+                    <div class="title-row">
+                        <span class="title">📚 对战历史</span>
+                        <span class="duration" id="historyCount">0场</span>
+                    </div>
+                    <div class="tag-row">
+                        <span class="tag">📊 数据统计</span>
+                        <span class="tag">🏆 战绩回顾</span>
+                    </div>
+                </div>
+                <div class="task-stats">
+                    <div class="stat">
+                        <span class="value" id="historyWinRate">0</span>
+                        <span class="label">胜率%</span>
+                    </div>
+                    <div class="stat">
+                        <span class="value" id="historyTotal">0</span>
+                        <span class="label">总场次</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+
+    <!-- ===== 页面 5: 我的页 ===== -->
+    <section class="page" id="profile">
+        <div class="profile-header">
+            <div class="profile-card">
+                <div class="avatar">👁️</div>
+                <div class="user-info">
+                    <h2>用户</h2>
+                    <p class="user-id">ID:2600778</p>
+                    <p class="vip-tip">开通会员，享受更多功能</p>
+                </div>
+                <div class="profile-mascot">
+                    <svg viewBox="0 0 60 60" width="50" height="50">
+                        <circle cx="30" cy="30" r="25" fill="#5FCFFF" />
+                        <circle cx="22" cy="26" r="6" fill="white" />
+                        <circle cx="38" cy="26" r="6" fill="white" />
+                        <circle cx="24" cy="27" r="3" fill="#333" />
+                        <circle cx="36" cy="27" r="3" fill="#333" />
+                        <path d="M22 38 Q30 45 38 38" stroke="#FF6B9D" stroke-width="2" fill="none" />
+                    </svg>
+                </div>
+            </div>
+            <button class="vip-button">查看特权</button>
+        </div>
+
+        <!-- 语音提醒设置 -->
+        <div class="settings-section">
+            <div class="section-title">语音提醒设置</div>
+            <div class="settings-list">
+                <div class="setting-item" onclick="toggleSetting(this)">
+                    <span class="setting-label">语音提醒</span>
+                    <div class="toggle active" id="voiceToggle"></div>
+                </div>
+                <div class="setting-item" onclick="showVoiceStylePicker()">
+                    <span class="setting-label">提醒风格</span>
+                    <span class="setting-value" id="voiceStyleValue">随机 ›</span>
+                </div>
+                <div class="setting-item" onclick="showVolumePicker()">
+                    <span class="setting-label">语音音量</span>
+                    <span class="setting-value" id="volumeValue">80% ›</span>
+                </div>
+            </div>
+        </div>
+
+        <!-- 提醒设置 -->
+        <div class="settings-section">
+            <div class="section-title">提醒设置</div>
+            <div class="settings-list">
+                <div class="setting-item" onclick="toggleSetting(this)">
+                    <span class="setting-label">距离提醒音效</span>
+                    <div class="toggle active" id="distanceSoundToggle"></div>
+                </div>
+                <div class="setting-item" onclick="toggleSetting(this)">
+                    <span class="setting-label">姿势提醒震动</span>
+                    <div class="toggle active" id="postureVibrateToggle"></div>
+                </div>
+                <div class="setting-item" onclick="toggleSetting(this)">
+                    <span class="setting-label">违规自动拍照</span>
+                    <div class="toggle active" id="autoPhotoToggle"></div>
+                </div>
+                <div class="setting-item" onclick="toggleSetting(this)">
+                    <span class="setting-label">休息提醒</span>
+                    <div class="toggle" id="breakReminderToggle"></div>
+                </div>
+                <div class="section-title">监测设置</div>
+                <div class="settings-item" onclick="openSettings()">
+                    <span class="label">⚙️ 距离与姿势设置</span>
+                    <span class="arrow">›</span>
+                </div>
+            </div>
+
+
+            <div class="settings-section">
+                <div class="section-title">提醒方式</div>
+                <div class="settings-item">
+                    <span class="label">专注音效</span>
+                    <div class="toggle active"></div>
+                </div>
+            </div>
+
+            <!-- 监测参数 -->
+            <div class="settings-section">
+                <div class="section-title">监测参数</div>
+                <div class="settings-list">
+                    <div class="setting-item" onclick="showDistancePicker()">
+                        <span class="setting-label">理想用眼距离</span>
+                        <span class="setting-value" id="idealDistanceValue">45cm ›</span>
+                    </div>
+                    <div class="setting-item" onclick="showAnglePicker()">
+                        <span class="setting-label">最大倾斜角度</span>
+                        <span class="setting-value" id="maxAngleValue">15° ›</span>
+                    </div>
+                    <div class="setting-item" onclick="showAwayTimeoutPicker()">
+                        <span class="setting-label">离开自动结束时长</span>
+                        <span class="setting-value" id="awayTimeoutValue">5分钟 ›</span>
+                    </div>
+                </div>
+            </div>
+
+            <!-- 隐私 -->
+            <div class="settings-section">
+                <div class="section-title">隐私</div>
+                <div class="settings-list">
+                    <div class="setting-item">
+                        <span class="setting-label">隐私政策</span>
+                        <span class="setting-value">›</span>
+                    </div>
+                    <div class="setting-item">
+                        <span class="setting-label">服务协议</span>
+                        <span class="setting-value">›</span>
+                    </div>
+                </div>
+            </div>
+    </section>
+
+    <!-- ===== 底部导航栏 ===== -->
+    <nav class="bottom-nav">
+        <div class="nav-item active" onclick="showPage('home'); updateNavActive(0);">
+            <div class="icon">🏠</div>
+            <span class="label">首页</span>
+        </div>
+        <div class="nav-item" onclick="showPage('focus'); updateNavActive(1);">
+            <div class="icon">📋</div>
+            <span class="label">计划</span>
+        </div>
+        <div class="nav-tomato" onclick="showPage('timer'); updateNavActive(2);">
+            <div class="tomato-btn">
+                <svg viewBox="0 0 50 50" width="36" height="36">
+                    <circle cx="25" cy="28" r="18" fill="#5FCFFF" />
+                    <circle cx="20" cy="25" r="4" fill="white" />
+                    <circle cx="30" cy="25" r="4" fill="white" />
+                    <circle cx="21" cy="26" r="2" fill="#333" />
+                    <circle cx="29" cy="26" r="2" fill="#333" />
+                    <path d="M20 33 Q25 37 30 33" stroke="#FF6B9D" stroke-width="2" fill="none" />
+                </svg>
+            </div>
+            <span class="label">监测</span>
+        </div>
+        <div class="nav-item" onclick="showPage('stats'); updateNavActive(3);">
+            <div class="icon">📊</div>
+            <span class="label">统计</span>
+        </div>
+        <div class="nav-item" onclick="showPage('profile'); updateNavActive(4);">
+            <div class="icon">👤</div>
+            <span class="label">我的</span>
+        </div>
+    </nav>
+
+    <!-- ===== 弹窗层 ===== -->
+    <div class="overlay" id="overlay" onclick="closeAllModals()"></div>
+
+    <!-- 禅定模式弹窗 -->
+    <div class="modal" id="zenModal">
+        <div class="modal-header">
+            <span class="modal-icon">🧘</span>
+            <h2>专注模式</h2>
+            <button class="close-btn" onclick="closeModal('zenModal')">×</button>
+        </div>
+        <div class="modal-body">
+            <p>设置专注时长，开始深度专注</p>
+            <div class="time-picker">
+                <button class="time-btn" onclick="adjustZenTime(-5)">-</button>
+                <input type="number" id="zenTimeInput" value="25" min="5" max="120">
+                <span class="time-unit">分钟</span>
+                <button class="time-btn" onclick="adjustZenTime(5)">+</button>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="modal-btn primary" onclick="startZenMode()">开始专注</button>
+        </div>
+    </div>
+
+    <!-- 戒玩模式弹窗 -->
+    <div class="modal" id="playModal">
+        <div class="modal-header">
+            <span class="modal-icon">⏱️</span>
+            <h2>计时模式</h2>
+            <button class="close-btn" onclick="closeModal('playModal')">×</button>
+        </div>
+        <div class="modal-body">
+            <p>设置计时时长，到时提醒休息</p>
+            <div class="time-picker">
+                <button class="time-btn" onclick="adjustPlayTime(-5)">-</button>
+                <input type="number" id="playTimeInput" value="20" min="5" max="60">
+                <span class="time-unit">分钟</span>
+                <button class="time-btn" onclick="adjustPlayTime(5)">+</button>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="modal-btn primary" onclick="startPlayMode()">开始计时</button>
+        </div>
+    </div>
+
+    <!-- 日签/数据报告弹窗 -->
+    <div class="modal" id="dailyModal">
+        <div class="modal-header">
+            <span class="modal-icon">📊</span>
+            <h2>今日数据</h2>
+            <button class="close-btn" onclick="closeModal('dailyModal')">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="daily-stats">
+                <div class="daily-stat-item">
+                    <span class="daily-value">0</span>
+                    <span class="daily-label">监测时长(分钟)</span>
+                </div>
+                <div class="daily-stat-item">
+                    <span class="daily-value">100</span>
+                    <span class="daily-label">健康评分</span>
+                </div>
+                <div class="daily-stat-item">
+                    <span class="daily-value">0</span>
+                    <span class="daily-label">违规次数</span>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="modal-btn secondary" onclick="closeModal('dailyModal')">关闭</button>
+            <button class="modal-btn primary"
+                onclick="showPage('stats'); closeModal('dailyModal'); updateNavActive(3);">查看详情</button>
+        </div>
+    </div>
+
+    <!-- 奖励弹窗 -->
+    <div class="modal reward-modal" id="rewardModal">
+        <div class="reward-content">
+            <div class="reward-icon">🏆</div>
+            <div class="reward-text">+10</div>
+            <div class="reward-desc">健康用眼达成奖励！</div>
+        </div>
+    </div>
+
+    <!-- 照片弹窗 -->
+    <div class="modal photo-modal" id="photoModal">
+        <div class="modal-header">
+            <span class="modal-icon">📷</span>
+            <h2>违规记录</h2>
+            <button class="close-btn" onclick="closeModal('photoModal')">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="photo-gallery" id="photoGallery">
+                <p class="no-photos">暂无违规记录</p>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="modal-btn secondary" onclick="downloadAllPhotos()">下载全部</button>
+            <button class="modal-btn danger" onclick="clearAllPhotos()">清空记录</button>
+        </div>
+    </div>
+    
+    <!-- 成就系统弹窗 -->
+    <div class="modal achievements-modal" id="achievementsModal">
+        <div class="modal-header">
+            <span class="modal-icon">🏆</span>
+            <h2>成就系统</h2>
+            <button class="close-btn" onclick="closeModal('achievementsModal')">×</button>
+        </div>
+        <div class="modal-body">
+            <!-- 统计概览 -->
+            <div class="achievements-stats">
+                <div class="achievement-stat-item">
+                    <div class="achievement-stat-value" id="achievementUnlocked">0</div>
+                    <div class="achievement-stat-label">已解锁</div>
+                </div>
+                <div class="achievement-stat-divider">/</div>
+                <div class="achievement-stat-item">
+                    <div class="achievement-stat-value" id="achievementTotal">0</div>
+                    <div class="achievement-stat-label">总成就</div>
+                </div>
+                <div class="achievement-stat-item">
+                    <div class="achievement-stat-value" id="achievementPoints">0</div>
+                    <div class="achievement-stat-label">总积分</div>
+                </div>
+            </div>
+            
+            <!-- 进度条 -->
+            <div class="achievements-progress-bar">
+                <div class="achievements-progress-fill" id="achievementsProgressFill" style="width: 0%"></div>
+                <div class="achievements-progress-text" id="achievementsProgressText">0%</div>
+            </div>
+            
+            <!-- 分类标签 -->
+            <div class="achievements-categories">
+                <button class="category-btn active" data-category="all" onclick="filterAchievements('all')">全部</button>
+                <button class="category-btn" data-category="monitoring" onclick="filterAchievements('monitoring')">监测</button>
+                <button class="category-btn" data-category="duration" onclick="filterAchievements('duration')">时长</button>
+                <button class="category-btn" data-category="streak" onclick="filterAchievements('streak')">打卡</button>
+                <button class="category-btn" data-category="health" onclick="filterAchievements('health')">健康</button>
+                <button class="category-btn" data-category="battle" onclick="filterAchievements('battle')">对战</button>
+                <button class="category-btn" data-category="special" onclick="filterAchievements('special')">特殊</button>
+            </div>
+            
+            <!-- 成就列表 -->
+            <div class="achievements-list" id="achievementsList">
+                <!-- 动态生成 -->
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="modal-btn secondary" onclick="closeModal('achievementsModal')">关闭</button>
+        </div>
+    </div>
+    
+    <!-- 挑战模式弹窗 -->
+    <div class="modal challenge-modal" id="challengeModal">
+        <div class="modal-header">
+            <span class="modal-icon">🎯</span>
+            <h2>挑战模式</h2>
+            <button class="close-btn" onclick="closeModal('challengeModal')">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="challenge-intro">
+                <p class="challenge-desc">邀请好友一起比拼护眼习惯！看谁能保持更好的坐姿和距离~</p>
+                
+                <div class="challenge-rules">
+                    <h3>📋 规则说明</h3>
+                    <ul>
+                        <li>⏱️ 对战时长：5分钟</li>
+                        <li>📏 距离过近：-10分</li>
+                        <li>🙇 姿势不正：-5分</li>
+                        <li>✅ 保持良好：+1分/秒</li>
+                        <li>🏆 得分高者获胜</li>
+                    </ul>
+                </div>
+                
+                <div class="challenge-modes">
+                    <h3>🎮 对战模式</h3>
+                    <div class="mode-options">
+                        <div class="mode-option" onclick="selectChallengeMode('local')">
+                            <div class="mode-icon">👥</div>
+                            <div class="mode-name">本地对战</div>
+                            <div class="mode-desc">同一设备，轮流使用</div>
+                        </div>
+                        <div class="mode-option" onclick="selectChallengeMode('online')">
+                            <div class="mode-icon">🌐</div>
+                            <div class="mode-name">在线对战</div>
+                            <div class="mode-desc">远程连线，实时PK</div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="modal-btn secondary" onclick="closeModal('challengeModal')">取消</button>
+        </div>
+    </div>
+    
+    <!-- 本地对战准备弹窗 -->
+    <div class="modal challenge-prepare-modal" id="challengePrepareModal">
+        <div class="modal-header">
+            <span class="modal-icon">🎯</span>
+            <h2>本地对战</h2>
+            <button class="close-btn" onclick="closeModal('challengePrepareModal')">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="player-setup">
+                <div class="player-input-group">
+                    <label>玩家1 昵称</label>
+                    <input type="text" id="player1Name" placeholder="输入昵称" value="玩家1" maxlength="10">
+                </div>
+                <div class="vs-divider">VS</div>
+                <div class="player-input-group">
+                    <label>玩家2 昵称</label>
+                    <input type="text" id="player2Name" placeholder="输入昵称" value="玩家2" maxlength="10">
+                </div>
+            </div>
+            <div class="challenge-tip">
+                <p>💡 提示：两位玩家将轮流进行5分钟的护眼挑战，系统会记录每位玩家的表现并计算得分。</p>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="modal-btn secondary" onclick="closeModal('challengePrepareModal')">取消</button>
+            <button class="modal-btn primary" onclick="startLocalChallenge()">开始对战</button>
+        </div>
+    </div>
+    
+    <!-- 在线对战选择弹窗 -->
+    <div class="modal online-challenge-modal" id="onlineChallengeModal">
+        <div class="modal-header">
+            <span class="modal-icon">🌐</span>
+            <h2>在线对战</h2>
+            <button class="close-btn" onclick="closeModal('onlineChallengeModal')">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="online-options">
+                <div class="online-option highlight" onclick="quickMatchOnline()">
+                    <div class="option-icon">⚡</div>
+                    <div class="option-title">快速匹配</div>
+                    <div class="option-desc">自动匹配对手，立即开战</div>
+                </div>
+                <div class="online-option" onclick="showCreateRoom()">
+                    <div class="option-icon">🏠</div>
+                    <div class="option-title">创建房间</div>
+                    <div class="option-desc">创建房间并等待对手加入</div>
+                </div>
+                <div class="online-option" onclick="showRoomList()">
+                    <div class="option-icon">📋</div>
+                    <div class="option-title">房间列表</div>
+                    <div class="option-desc">查看可加入的房间</div>
+                </div>
+                <div class="online-option" onclick="showJoinRoom()">
+                    <div class="option-icon">🔑</div>
+                    <div class="option-title">输入房间ID</div>
+                    <div class="option-desc">直接输入房间ID加入</div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="modal-btn secondary" onclick="closeModal('onlineChallengeModal')">取消</button>
+        </div>
+    </div>
+
+    <!-- 房间列表弹窗 -->
+    <div class="modal room-list-modal" id="roomListModal">
+        <div class="modal-header">
+            <span class="modal-icon">📋</span>
+            <h2>房间列表</h2>
+            <button class="close-btn" onclick="closeModal('roomListModal')">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="room-list-header">
+                <span class="room-count" id="roomCount">0 个房间</span>
+                <button class="refresh-btn" onclick="refreshRoomList()">🔄 刷新</button>
+            </div>
+            <div class="room-list" id="roomList">
+                <div class="no-rooms" id="noRoomsHint">
+                    <div class="no-rooms-icon">🏠</div>
+                    <div class="no-rooms-text">暂无可用房间</div>
+                    <div class="no-rooms-hint">点击"创建房间"开始等待对手</div>
+                </div>
+            </div>
+            <div class="player-input-group" style="margin-top: 16px;">
+                <label>你的昵称</label>
+                <input type="text" id="listPlayerName" placeholder="输入昵称" value="玩家" maxlength="10">
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="modal-btn secondary" onclick="closeModal('roomListModal')">取消</button>
+            <button class="modal-btn primary" onclick="showCreateRoom()">创建房间</button>
+        </div>
+    </div>
+    
+    <!-- 创建房间弹窗 -->
+    <div class="modal create-room-modal" id="createRoomModal">
+        <div class="modal-header">
+            <span class="modal-icon">🏠</span>
+            <h2>创建房间</h2>
+            <button class="close-btn" onclick="closeModal('createRoomModal')">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="room-setup">
+                <div class="player-input-group">
+                    <label>你的昵称</label>
+                    <input type="text" id="hostPlayerName" placeholder="输入昵称" value="玩家1" maxlength="10">
+                </div>
+                
+                <div class="room-id-section" id="roomIdSection" style="display: none;">
+                    <div class="room-id-label">房间ID</div>
+                    <div class="room-id-display">
+                        <input type="text" id="roomIdDisplay" readonly>
+                        <button class="copy-btn" onclick="copyRoomId()">📋 复制</button>
+                    </div>
+                    <div class="room-tip">
+                        <p>💡 将房间ID分享给好友，等待对手加入...</p>
+                    </div>
+                    
+                    <div class="waiting-status">
+                        <div class="loading-spinner"></div>
+                        <div class="waiting-text">等待对手加入...</div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="modal-btn secondary" onclick="closeModal('createRoomModal')">取消</button>
+            <button class="modal-btn primary" id="createRoomBtn" onclick="createOnlineRoom()">创建房间</button>
+        </div>
+    </div>
+    
+    <!-- 加入房间弹窗 -->
+    <div class="modal join-room-modal" id="joinRoomModal">
+        <div class="modal-header">
+            <span class="modal-icon">🚪</span>
+            <h2>加入房间</h2>
+            <button class="close-btn" onclick="closeModal('joinRoomModal')">×</button>
+        </div>
+        <div class="modal-body">
+            <div class="room-setup">
+                <div class="player-input-group">
+                    <label>你的昵称</label>
+                    <input type="text" id="guestPlayerName" placeholder="输入昵称" value="玩家2" maxlength="10">
+                </div>
+                
+                <div class="player-input-group">
+                    <label>房间ID</label>
+                    <input type="text" id="roomIdInput" placeholder="输入房间ID">
+                </div>
+                
+                <div class="room-tip">
+                    <p>💡 向房主索要房间ID，输入后即可加入对战</p>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="modal-btn secondary" onclick="closeModal('joinRoomModal')">取消</button>
+            <button class="modal-btn primary" onclick="joinOnlineRoom()">加入房间</button>
+        </div>
+    </div>
+    
+    <!-- 在线对战进行中界面 -->
+    <div class="challenge-battle-overlay" id="onlineBattleOverlay">
+        <div class="battle-container">
+            <div class="battle-header">
+                <div class="current-player">
+                    <span class="player-label">我的昵称</span>
+                    <span class="player-name" id="onlineMyName">玩家1</span>
+                </div>
+                <div class="battle-timer" id="onlineBattleTimer">05:00</div>
+                <button class="battle-quit" onclick="quitOnlineChallenge()">退出</button>
+            </div>
+            
+            <div class="battle-scores">
+                <div class="player-score my-score">
+                    <div class="score-label">我</div>
+                    <div class="score-value" id="onlineMyScore">0</div>
+                </div>
+                <div class="score-divider">VS</div>
+                <div class="player-score opponent-score">
+                    <div class="score-label" id="onlineOpponentName">对手</div>
+                    <div class="score-value" id="onlineOpponentScore">0</div>
+                </div>
+            </div>
+            
+            <div class="battle-stats">
+                <div class="stat-item">
+                    <span class="stat-icon">📏</span>
+                    <span class="stat-label">我的距离违规</span>
+                    <span class="stat-value" id="onlineMyDistanceViolations">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-icon">🙇</span>
+                    <span class="stat-label">我的姿势违规</span>
+                    <span class="stat-value" id="onlineMyPostureViolations">0</span>
+                </div>
+            </div>
+            
+            <div class="battle-message" id="onlineBattleMessage">保持良好姿势，加油！</div>
+            
+            <div class="connection-status" id="connectionStatus">
+                <span class="status-dot connected"></span>
+                <span class="status-text">已连接</span>
+            </div>
+        </div>
+    </div>
+    
+    <!-- 对战进行中界面 -->
+    <div class="challenge-battle-overlay" id="challengeBattleOverlay">
+        <div class="battle-container">
+            <div class="battle-header">
+                <div class="current-player">
+                    <span class="player-label">当前玩家</span>
+                    <span class="player-name" id="currentPlayerName">玩家1</span>
+                </div>
+                <div class="battle-timer" id="battleTimer">05:00</div>
+                <button class="battle-quit" onclick="quitChallenge()">退出</button>
+            </div>
+            
+            <div class="battle-scores">
+                <div class="player-score">
+                    <div class="score-label" id="player1NameDisplay">玩家1</div>
+                    <div class="score-value" id="player1Score">0</div>
+                </div>
+                <div class="score-divider">VS</div>
+                <div class="player-score">
+                    <div class="score-label" id="player2NameDisplay">玩家2</div>
+                    <div class="score-value" id="player2Score">0</div>
+                </div>
+            </div>
+            
+            <div class="battle-stats">
+                <div class="stat-item">
+                    <span class="stat-icon">📏</span>
+                    <span class="stat-label">距离违规</span>
+                    <span class="stat-value" id="currentDistanceViolations">0</span>
+                </div>
+                <div class="stat-item">
+                    <span class="stat-icon">🙇</span>
+                    <span class="stat-label">姿势违规</span>
+                    <span class="stat-value" id="currentPostureViolations">0</span>
+                </div>
+            </div>
+            
+            <div class="battle-message" id="battleMessage">保持良好姿势，加油！</div>
+        </div>
+    </div>
+    
+    <!-- 对战结果弹窗 -->
+    <div class="modal challenge-result-modal" id="challengeResultModal">
+        <div class="modal-header">
+            <span class="modal-icon">🏆</span>
+            <h2>对战结果</h2>
+        </div>
+        <div class="modal-body">
+            <div class="winner-announcement">
+                <div class="winner-icon">👑</div>
+                <div class="winner-text" id="winnerText">玩家1 获胜！</div>
+            </div>
+            
+            <div class="result-comparison">
+                <div class="player-result">
+                    <div class="player-result-name" id="result1Name">玩家1</div>
+                    <div class="player-result-score" id="result1Score">0</div>
+                    <div class="player-result-stats">
+                        <div>距离违规: <span id="result1Distance">0</span></div>
+                        <div>姿势违规: <span id="result1Posture">0</span></div>
+                    </div>
+                </div>
+                <div class="result-divider">VS</div>
+                <div class="player-result">
+                    <div class="player-result-name" id="result2Name">玩家2</div>
+                    <div class="player-result-score" id="result2Score">0</div>
+                    <div class="player-result-stats">
+                        <div>距离违规: <span id="result2Distance">0</span></div>
+                        <div>姿势违规: <span id="result2Posture">0</span></div>
+                    </div>
+                </div>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="modal-btn secondary" onclick="closeModal('challengeResultModal')">关闭</button>
+            <button class="modal-btn primary" onclick="restartChallenge()">再来一局</button>
+        </div>
+    </div>
+    
+    <!-- 对战历史弹窗 -->
+    <div class="modal challenge-history-modal" id="challengeHistoryModal">
+        <div class="modal-header">
+            <span class="modal-icon">📚</span>
+            <h2>对战历史</h2>
+            <button class="close-btn" onclick="closeModal('challengeHistoryModal')">×</button>
+        </div>
+        <div class="modal-body">
+            <!-- 统计概览 -->
+            <div class="history-stats-overview">
+                <div class="overview-item">
+                    <div class="overview-value" id="historyTotalBattles">0</div>
+                    <div class="overview-label">总场次</div>
+                </div>
+                <div class="overview-item">
+                    <div class="overview-value" id="historyLocalBattles">0</div>
+                    <div class="overview-label">本地对战</div>
+                </div>
+                <div class="overview-item">
+                    <div class="overview-value" id="historyOnlineBattles">0</div>
+                    <div class="overview-label">在线对战</div>
+                </div>
+                <div class="overview-item">
+                    <div class="overview-value" id="historyAvgScore">0</div>
+                    <div class="overview-label">平均得分</div>
+                </div>
+            </div>
+            
+            <!-- 筛选器 -->
+            <div class="history-filters">
+                <select id="historyTypeFilter" class="history-filter-select" onchange="filterChallengeHistory()">
+                    <option value="all">全部类型</option>
+                    <option value="local">本地对战</option>
+                    <option value="online">在线对战</option>
+                </select>
+                <button class="history-export-btn" onclick="exportChallengeHistory()">
+                    <span>📥</span> 导出数据
+                </button>
+                <button class="history-clear-btn" onclick="clearChallengeHistory()">
+                    <span>🗑️</span> 清空历史
+                </button>
+            </div>
+            
+            <!-- 历史记录列表 -->
+            <div class="history-records-list" id="historyRecordsList">
+                <div class="empty-history">
+                    <div class="empty-icon">📝</div>
+                    <div class="empty-text">暂无对战记录</div>
+                    <div class="empty-hint">开始一场对战后，这里会显示历史记录</div>
+                </div>
+            </div>
+            
+            <!-- 分页控制 -->
+            <div class="history-pagination" id="historyPagination" style="display: none;">
+                <button class="page-btn" onclick="goToHistoryPage('prev')" id="historyPrevBtn">
+                    <span>← 上一页</span>
+                </button>
+                <div class="page-info">
+                    <span id="historyPageInfo">第 1 页 / 共 1 页</span>
+                </div>
+                <button class="page-btn" onclick="goToHistoryPage('next')" id="historyNextBtn">
+                    <span>下一页 →</span>
+                </button>
+            </div>
+        </div>
+        <div class="modal-footer">
+            <button class="modal-btn secondary" onclick="closeModal('challengeHistoryModal')">关闭</button>
+        </div>
+    </div>
+
+    <!-- 情景弹窗容器 -->
+    <div id="scenarioPopupContainer"></div>
+
+    <!-- 引入模块 -->
+    <script src="monitor.js"></script>
+    <script src="voice.js?v=5.3"></script>
+    <script src="mascot.js?v=2.3"></script>
+    <script src="challenge-history.js"></script>
+    <script src="error-notification.js"></script>
+    <script src="achievement-system.js"></script>
+    <script src="online-challenge.js"></script>
+    <script src="popup.js"></script>
+    <script src="diagnose-video.js"></script>
+    <script src="diagnose-button.js"></script>
+
+    <!-- 文字提示组件 -->
+    <div class="text-notification" id="textNotification">
+        <div class="notification-content">
+            <span class="notification-icon" id="notificationIcon">💡</span>
+            <span class="notification-text" id="notificationText">提示信息</span>
+        </div>
+    </div>
+
+    <!-- 设置弹窗 -->
+    <div class="modal-overlay" id="settingsModal">
+        <div class="modal-content settings-modal">
+            <div class="modal-header">
+                <h2>⚙️ 监测设置</h2>
+                <button class="modal-close" onclick="closeSettings()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="setting-group">
+                    <label>理想距离 (cm)</label>
+                    <div class="setting-input">
+                        <input type="range" id="idealDistanceInput" min="40" max="70" value="50"
+                            oninput="updateSettingDisplay('idealDistance', this.value)">
+                        <span class="setting-value" id="idealDistanceValue">50</span>
+                    </div>
+                    <p class="setting-hint">达到此距离时累计正激励</p>
+                </div>
+                <div class="setting-group">
+                    <label>最低安全距离 (cm)</label>
+                    <div class="setting-input">
+                        <input type="range" id="minDistanceInput" min="30" max="50" value="35"
+                            oninput="updateSettingDisplay('minDistance', this.value)">
+                        <span class="setting-value" id="minDistanceValue">35</span>
+                    </div>
+                    <p class="setting-hint">低于此距离时触发警告</p>
+                </div>
+                <div class="setting-group">
+                    <label>报警间隔 (秒)</label>
+                    <div class="setting-input">
+                        <input type="range" id="warningIntervalInput" min="3" max="15" value="5"
+                            oninput="updateSettingDisplay('warningInterval', this.value)">
+                        <span class="setting-value" id="warningIntervalValue">5</span>
+                    </div>
+                    <p class="setting-hint">语音提醒的最小间隔</p>
+                </div>
+                <div class="setting-group setting-toggle">
+                    <label>启用语音提醒</label>
+                    <div class="toggle active" id="voiceEnabledToggle" onclick="toggleVoiceEnabled()"></div>
+                </div>
+                <div class="setting-group">
+                    <label>语音风格</label>
+                    <select id="voiceStyleSelect" class="setting-select" onchange="changeVoiceStyle(this.value)">
+                        <option value="random">随机切换</option>
+                        <option value="doraemon">哆啦A梦</option>
+                        <option value="pikachu">皮卡丘</option>
+                        <option value="popeye">大力水手</option>
+                        <option value="genie">阿拉丁精灵</option>
+                    </select>
+                    <p class="setting-hint">选择你喜欢的语音角色</p>
+                </div>
+                <div class="setting-group setting-toggle">
+                    <label>启用正激励</label>
+                    <div class="toggle" id="positiveRewardToggle" onclick="togglePositiveReward()"></div>
+                </div>
+                
+                <!-- 距离校准设置 -->
+                <div class="setting-group">
+                    <label>距离校准</label>
+                    <div class="calibration-status">
+                        <span id="calibrationStatus" class="calibration-status-text">未校准</span>
+                        <button class="btn-calibrate" onclick="openCalibrationModal()">开始校准</button>
+                    </div>
+                    <p class="setting-hint">用尺子量好实际距离后校准，可提高监测精度</p>
+                </div>
+                
+                <div class="preset-buttons">
+                    <button class="preset-btn" onclick="applyPreset('child')">👶 儿童</button>
+                    <button class="preset-btn" onclick="applyPreset('teen')">🧒 青少年</button>
+                    <button class="preset-btn" onclick="applyPreset('adult')">👤 成人</button>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="closeSettings()">取消</button>
+                <button class="btn-primary" onclick="saveSettings()">保存设置</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- 专注完成弹窗 -->
+    <div class="modal-overlay" id="completeModal">
+        <div class="modal-content complete-modal">
+            <div class="complete-emoji">🎉</div>
+            <h2>专注完成!</h2>
+            <div class="complete-stats">
+                <div class="complete-stat-row">
+                    <span>歪头次数：</span>
+                    <span class="complete-stat-value" id="completeTiltCount">0</span>
+                </div>
+                <div class="complete-stat-row">
+                    <span>近距离次数：</span>
+                    <span class="complete-stat-value" id="completeDistanceCount">0</span>
+                </div>
+                <div class="complete-stat-row">
+                    <span>最大偏头：</span>
+                    <span class="complete-stat-value" id="completeMaxTilt">0°</span>
+                </div>
+                <div class="complete-stat-row">
+                    <span>最近距离：</span>
+                    <span class="complete-stat-value" id="completeMinDistance">-</span>
+                </div>
+            </div>
+            <div class="complete-photos" id="completePhotos"></div>
+            <button class="btn-primary complete-btn" onclick="closeCompleteModal()">完成</button>
+        </div>
+    </div>
+
+    <!-- 距离校准弹窗 -->
+    <div class="modal-overlay" id="calibrationModal">
+        <div class="modal-content calibration-modal">
+            <div class="modal-header">
+                <h2>📏 距离校准</h2>
+                <button class="modal-close" onclick="closeCalibrationModal()">&times;</button>
+            </div>
+            <div class="modal-body">
+                <div class="calibration-steps">
+                    <div class="calibration-step">
+                        <div class="step-number">1</div>
+                        <div class="step-content">
+                            <h3>准备尺子</h3>
+                            <p>准备一把尺子或卷尺，用于测量实际距离</p>
+                        </div>
+                    </div>
+                    <div class="calibration-step">
+                        <div class="step-number">2</div>
+                        <div class="step-content">
+                            <h3>保持姿势</h3>
+                            <p>坐在平时使用的位置，保持正常的阅读姿势</p>
+                        </div>
+                    </div>
+                    <div class="calibration-step">
+                        <div class="step-number">3</div>
+                        <div class="step-content">
+                            <h3>测量距离</h3>
+                            <p>用尺子量一下眼睛到屏幕的实际距离（单位：厘米）</p>
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="calibration-current">
+                    <div class="current-distance-label">当前计算距离</div>
+                    <div class="current-distance-value" id="currentCalculatedDistance">--</div>
+                    <div class="current-distance-unit">cm</div>
+                </div>
+                
+                <div class="calibration-input-group">
+                    <label>输入实际距离（厘米）</label>
+                    <input type="number" id="actualDistanceInput" min="20" max="100" placeholder="例如：40" class="calibration-input">
+                </div>
+                
+                <div class="calibration-hint">
+                    <span class="hint-icon">💡</span>
+                    <span class="hint-text">校准后，系统会根据您的实际距离调整计算精度</span>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" onclick="resetCalibration()">重置校准</button>
+                <button class="btn-primary" onclick="performCalibration()">确认校准</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // ===== 页面切换功能 =====
+        function showPage(pageId) {
+            // 关闭所有弹窗
+            closeSettings();
+            closeAllModals();
+
+            // 隐藏所有页面
+            document.querySelectorAll('.page').forEach(page => {
+                page.classList.remove('active');
+            });
+            // 显示目标页面
+            const targetPage = document.getElementById(pageId);
+            if (targetPage) {
+                targetPage.classList.add('active');
+            }
+        }
+
+        function updateNavActive(index) {
+            document.querySelectorAll('.nav-item').forEach((item, i) => {
+                if (i === index) {
+                    item.classList.add('active');
+                } else {
+                    item.classList.remove('active');
+                }
+            });
+        }
+
+        function toggleSetting(element) {
+            const toggle = element.querySelector('.toggle');
+            if (toggle) {
+                toggle.classList.toggle('active');
+            }
+        }
+
+        // ===== 弹窗功能 =====
+        function showModal(modalId) {
+            document.getElementById('overlay').classList.add('active');
+            document.getElementById(modalId).classList.add('active');
+        }
+
+        function closeModal(modalId) {
+            document.getElementById('overlay').classList.remove('active');
+            document.getElementById(modalId).classList.remove('active');
+        }
+
+        function closeAllModals() {
+            document.getElementById('overlay').classList.remove('active');
+            document.querySelectorAll('.modal').forEach(modal => {
+                modal.classList.remove('active');
+            });
+        }
+
+        function showZenModeModal() {
+            showModal('zenModal');
+        }
+
+        function showPlayModeModal() {
+            showModal('playModal');
+        }
+
+        function showDailySignModal() {
+            showModal('dailyModal');
+        }
+
+        function startZenMode() {
+            const minutes = parseInt(document.getElementById('zenTimeInput').value) || 25;
+            focusTimeRemaining = minutes * 60;
+            document.getElementById('timerDisplay').textContent = formatTime(focusTimeRemaining);
+            closeModal('zenModal');
+            showPage('timer');
+            updateNavActive(2);
+        }
+
+        function startPlayMode() {
+            const minutes = parseInt(document.getElementById('playTimeInput').value) || 20;
+            focusTimeRemaining = minutes * 60;
+            document.getElementById('timerDisplay').textContent = formatTime(focusTimeRemaining);
+            closeModal('playModal');
+            showPage('timer');
+            updateNavActive(2);
+        }
+
+        function adjustZenTime(delta) {
+            const input = document.getElementById('zenTimeInput');
+            let value = parseInt(input.value) + delta;
+            value = Math.max(5, Math.min(120, value));
+            input.value = value;
+        }
+
+        function adjustPlayTime(delta) {
+            const input = document.getElementById('playTimeInput');
+            let value = parseInt(input.value) + delta;
+            value = Math.max(5, Math.min(60, value));
+            input.value = value;
+        }
+
+        // ===== 设置功能 =====
+        function showDistancePicker() {
+            const distance = prompt('请输入理想用眼距离(厘米):', '45');
+            if (distance && !isNaN(distance)) {
+                document.getElementById('idealDistanceValue').textContent = distance + 'cm ›';
+                if (window.postureMonitor) {
+                    window.postureMonitor.minSafeDistance = parseInt(distance);
+                }
+            }
+        }
+
+        function showAnglePicker() {
+            const angle = prompt('请输入最大倾斜角度(度):', '15');
+            if (angle && !isNaN(angle)) {
+                document.getElementById('maxAngleValue').textContent = angle + '° ›';
+                if (window.postureMonitor) {
+                    window.postureMonitor.thresholds.tiltAngle = parseInt(angle);
+                }
+            }
+        }
+
+        function showVoiceStylePicker() {
+            if (window.voiceReminder) {
+                const styles = ['random', 'doraemon', 'pikachu', 'popeye', 'genie', 'minion', 'spongebob', 'kungfupanda', 'peppapig'];
+                const names = ['随机', '哆啦A梦', '皮卡丘', '大力水手', '阿拉丁精灵', '小黄人', '海绵宝宝', '功夫熊猫', '小猪佩奇'];
+                const currentIndex = styles.indexOf(window.voiceReminder.currentStyle);
+                const nextIndex = (currentIndex + 1) % styles.length;
+                window.voiceReminder.setStyle(styles[nextIndex]);
+                document.getElementById('voiceStyleValue').textContent = names[nextIndex] + ' ›';
+            }
+        }
+
+        function showVolumePicker() {
+            const volume = prompt('请输入语音音量(0-100):', '80');
+            if (volume && !isNaN(volume)) {
+                const vol = Math.max(0, Math.min(100, parseInt(volume)));
+                document.getElementById('volumeValue').textContent = vol + '% ›';
+                if (window.voiceReminder) {
+                    window.voiceReminder.setVolume(vol / 100);
+                }
+            }
+        }
+
+        function showAwayTimeoutPicker() {
+            const timeouts = [3, 5, 10, 15];
+            const names = ['3分钟', '5分钟', '10分钟', '15分钟'];
+            
+            // 获取当前设置
+            const currentTimeout = localStorage.getItem('awayTimeout') || '5';
+            const currentIndex = timeouts.indexOf(parseInt(currentTimeout));
+            const nextIndex = (currentIndex + 1) % timeouts.length;
+            
+            // 保存新设置
+            localStorage.setItem('awayTimeout', timeouts[nextIndex].toString());
+            document.getElementById('awayTimeoutValue').textContent = names[nextIndex] + ' ›';
+            
+            // 更新monitor.js中的设置
+            if (window.postureMonitor) {
+                window.postureMonitor.awayTimeout = timeouts[nextIndex] * 60 * 1000; // 转换为毫秒
+            }
+            
+            // 播放语音提示
+            if (window.voiceReminder) {
+                window.voiceReminder.playCustom(`离开自动结束时长已设置为${names[nextIndex]}`);
+            }
+        }
+
+        // 页面加载时初始化离开时长设置
+        document.addEventListener('DOMContentLoaded', function() {
+            const savedTimeout = localStorage.getItem('awayTimeout') || '5';
+            const timeouts = [3, 5, 10, 15];
+            const names = ['3分钟', '5分钟', '10分钟', '15分钟'];
+            const index = timeouts.indexOf(parseInt(savedTimeout));
+            if (index !== -1) {
+                document.getElementById('awayTimeoutValue').textContent = names[index] + ' ›';
+            }
+            
+            updateCalibrationStatus();
+        });
+
+        // ===== 历史记录管理 =====
+        const HISTORY_STORAGE_KEY = 'visiondist_history';
+        
+        // 加载历史记录
+        function loadHistory() {
+            try {
+                const data = localStorage.getItem(HISTORY_STORAGE_KEY);
+                return data ? JSON.parse(data) : [];
+            } catch (e) {
+                console.error('加载历史记录失败:', e);
+                return [];
+            }
+        }
+        
+        // 保存历史记录
+        function saveHistory(history) {
+            try {
+                localStorage.setItem(HISTORY_STORAGE_KEY, JSON.stringify(history));
+            } catch (e) {
+                console.error('保存历史记录失败:', e);
+            }
+        }
+        
+        // 添加一条记录
+        function addHistoryRecord(record) {
+            const history = loadHistory();
+            history.unshift(record); // 添加到开头
+            
+            // 只保留最近100条记录
+            if (history.length > 100) {
+                history.splice(100);
+            }
+            
+            saveHistory(history);
+            updateStatsPage();
+        }
+        
+        // 计算健康评分
+        function calculateScore(stats) {
+            const { headTiltCount, distanceCount, duration } = stats;
+            const totalViolations = headTiltCount + distanceCount;
+            const violationRate = duration > 0 ? (totalViolations / (duration / 60)) : 0;
+            
+            let score = 100;
+            score -= violationRate * 10; // 每分钟违规扣10分
+            score = Math.max(0, Math.min(100, Math.round(score)));
+            
+            return score;
+        }
+        
+        // 获取评分星级
+        function getScoreStars(score) {
+            if (score >= 90) return '⭐⭐⭐⭐⭐';
+            if (score >= 75) return '⭐⭐⭐⭐';
+            if (score >= 60) return '⭐⭐⭐';
+            if (score >= 40) return '⭐⭐';
+            return '⭐';
+        }
+        
+        // 格式化日期
+        function formatDate(date) {
+            const d = new Date(date);
+            const today = new Date();
+            const yesterday = new Date(today);
+            yesterday.setDate(yesterday.getDate() - 1);
+            
+            if (d.toDateString() === today.toDateString()) {
+                return '今天';
+            } else if (d.toDateString() === yesterday.toDateString()) {
+                return '昨天';
+            } else {
+                return `${d.getMonth() + 1}月${d.getDate()}日`;
+            }
+        }
+        
+        // 格式化时间
+        function formatTimeHHMM(date) {
+            const d = new Date(date);
+            return `${d.getHours().toString().padStart(2, '0')}:${d.getMinutes().toString().padStart(2, '0')}`;
+        }
+        
+        // 按日期分组记录
+        function groupRecordsByDate(records) {
+            const groups = {};
+            
+            records.forEach(record => {
+                const date = new Date(record.startTime).toDateString();
+                if (!groups[date]) {
+                    groups[date] = [];
+                }
+                groups[date].push(record);
+            });
+            
+            return groups;
+        }
+        
+        // 渲染历史记录
+        function renderHistory() {
+            const history = filteredHistory.length > 0 ? filteredHistory : loadHistory();
+            if (filteredHistory.length === 0 && loadHistory().length > 0) {
+                filteredHistory = loadHistory();
+            }
+            
+            const container = document.getElementById('historyList');
+            const paginationControls = document.getElementById('paginationControls');
+            
+            if (history.length === 0) {
+                container.innerHTML = `
+                    <div class="empty-state">
+                        <div class="empty-icon">📝</div>
+                        <div class="empty-text">暂无监测记录</div>
+                        <div class="empty-hint">开始一次监测后，这里会显示详细记录</div>
+                    </div>
+                `;
+                paginationControls.classList.add('hidden');
+                return;
+            }
+            
+            // 分页逻辑
+            const totalPages = Math.ceil(history.length / pageSize);
+            const startIndex = (currentPage - 1) * pageSize;
+            const endIndex = Math.min(startIndex + pageSize, history.length);
+            const pagedHistory = history.slice(startIndex, endIndex);
+            
+            const groups = groupRecordsByDate(pagedHistory);
+            const dates = Object.keys(groups).sort((a, b) => new Date(b) - new Date(a));
+            
+            let html = '';
+            
+            dates.forEach(dateStr => {
+                const records = groups[dateStr];
+                const date = new Date(dateStr);
+                const dateLabel = formatDate(date);
+                
+                // 计算当天汇总
+                const totalDuration = records.reduce((sum, r) => sum + r.duration, 0);
+                const totalViolations = records.reduce((sum, r) => sum + r.stats.headTiltCount + r.stats.distanceCount, 0);
+                const avgScore = Math.round(records.reduce((sum, r) => sum + r.score, 0) / records.length);
+                
+                html += `
+                    <div class="history-date-group" id="group-${dateStr}">
+                        <div class="history-date-header" onclick="toggleDateGroup('${dateStr}')">
+                            <div class="date-info">
+                                <div class="date-title">${dateLabel} (${date.getMonth() + 1}/${date.getDate()})</div>
+                                <div class="date-summary">
+                                    <span>${records.length}次监测</span>
+                                    <span>${Math.round(totalDuration / 60)}分钟</span>
+                                    <span>评分: ${avgScore}</span>
+                                </div>
+                            </div>
+                            <div class="expand-icon">▼</div>
+                        </div>
+                        <div class="history-records">
+                            ${records.map(record => renderRecord(record)).join('')}
+                        </div>
+                    </div>
+                `;
+            });
+            
+            container.innerHTML = html;
+            
+            // 更新分页控制
+            if (pageSize < history.length) {
+                paginationControls.classList.remove('hidden');
+                document.getElementById('pageInfo').textContent = `第 ${currentPage} 页 / 共 ${totalPages} 页 (共 ${history.length} 条记录)`;
+                document.getElementById('prevBtn').disabled = currentPage === 1;
+                document.getElementById('nextBtn').disabled = currentPage === totalPages;
+            } else {
+                paginationControls.classList.add('hidden');
+            }
+        }
+        
+        // 渲染单条记录
+        function renderRecord(record) {
+            const startTime = formatTimeHHMM(record.startTime);
+            const endTime = formatTimeHHMM(record.endTime);
+            const duration = Math.round(record.duration / 60);
+            const stars = getScoreStars(record.score);
+            
+            return `
+                <div class="history-record-item">
+                    <div class="record-header">
+                        <div class="record-time">${startTime} - ${endTime}</div>
+                        <div class="record-duration">${duration}分钟</div>
+                    </div>
+                    <div class="record-stats">
+                        <div class="record-stat">
+                            <div class="record-stat-value">${record.stats.headTiltCount}</div>
+                            <div class="record-stat-label">偏头次数</div>
+                        </div>
+                        <div class="record-stat">
+                            <div class="record-stat-value">${record.stats.distanceCount}</div>
+                            <div class="record-stat-label">距离过近</div>
+                        </div>
+                        <div class="record-stat">
+                            <div class="record-stat-value">${record.stats.minDistance === 999 ? '--' : record.stats.minDistance}</div>
+                            <div class="record-stat-label">最近距离(cm)</div>
+                        </div>
+                    </div>
+                    <div class="record-score">
+                        <span class="score-label">健康评分</span>
+                        <div>
+                            <span class="score-value">${record.score}</span>
+                            <span class="score-stars">${stars}</span>
+                        </div>
+                    </div>
+                </div>
+            `;
+        }
+        
+        // 切换日期组展开/折叠
+        function toggleDateGroup(dateStr) {
+            const group = document.getElementById(`group-${dateStr}`);
+            if (group) {
+                group.classList.toggle('expanded');
+            }
+        }
+        
+        // 更新统计页面
+        function updateStatsPage() {
+            const history = loadHistory();
+            
+            // 更新累计统计
+            const totalSessions = history.length;
+            const totalDuration = Math.round(history.reduce((sum, r) => sum + r.duration, 0) / 60);
+            const totalViolations = history.reduce((sum, r) => sum + r.stats.headTiltCount + r.stats.distanceCount, 0);
+            const avgScore = history.length > 0 ? Math.round(history.reduce((sum, r) => sum + r.score, 0) / history.length) : 0;
+            
+            document.getElementById('totalSessions').textContent = totalSessions;
+            document.getElementById('totalDuration').textContent = totalDuration;
+            document.getElementById('totalViolations').textContent = totalViolations;
+            document.getElementById('avgScore').textContent = avgScore;
+            
+            // 渲染历史记录
+            renderHistory();
+            
+            // 更新趋势图
+            updateChart();
+        }
+        
+        // ===== 导出功能 =====
+        function exportData(format) {
+            const history = loadHistory();
+            
+            if (history.length === 0) {
+                alert('暂无数据可导出');
+                return;
+            }
+            
+            if (format === 'csv') {
+                exportCSV(history);
+            } else if (format === 'json') {
+                exportJSON(history);
+            }
+        }
+        
+        function exportCSV(history) {
+            // CSV表头
+            const headers = ['日期', '开始时间', '结束时间', '时长(分钟)', '偏头次数', '距离过近次数', '最大倾斜角度', '最近距离(cm)', '健康评分'];
+            
+            // CSV数据行
+            const rows = history.map(record => {
+                const startDate = new Date(record.startTime);
+                const endDate = new Date(record.endTime);
+                
+                return [
+                    startDate.toLocaleDateString('zh-CN'),
+                    startDate.toLocaleTimeString('zh-CN'),
+                    endDate.toLocaleTimeString('zh-CN'),
+                    Math.round(record.duration / 60),
+                    record.stats.headTiltCount,
+                    record.stats.distanceCount,
+                    record.stats.maxTilt,
+                    record.stats.minDistance === 999 ? '--' : record.stats.minDistance,
+                    record.score
+                ].join(',');
+            });
+            
+            const csv = [headers.join(','), ...rows].join('\n');
+            
+            // 添加BOM以支持中文
+            const BOM = '\uFEFF';
+            const blob = new Blob([BOM + csv], { type: 'text/csv;charset=utf-8;' });
+            downloadFile(blob, `视距佳统计数据_${new Date().toLocaleDateString('zh-CN')}.csv`);
+        }
+        
+        function exportJSON(history) {
+            const json = JSON.stringify(history, null, 2);
+            const blob = new Blob([json], { type: 'application/json' });
+            downloadFile(blob, `视距佳统计数据_${new Date().toLocaleDateString('zh-CN')}.json`);
+        }
+        
+        function downloadFile(blob, filename) {
+            const url = URL.createObjectURL(blob);
+            const link = document.createElement('a');
+            link.href = url;
+            link.download = filename;
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+        }
+        
+        // ===== 筛选和分页功能 =====
+        let currentPage = 1;
+        let pageSize = 20;
+        let filteredHistory = [];
+        
+        function applyFilters() {
+            const startDate = document.getElementById('filterStartDate').value;
+            const endDate = document.getElementById('filterEndDate').value;
+            
+            const history = loadHistory();
+            
+            if (!startDate && !endDate) {
+                filteredHistory = history;
+            } else {
+                const startTime = startDate ? new Date(startDate).getTime() : 0;
+                const endTime = endDate ? new Date(endDate).setHours(23, 59, 59, 999) : Date.now();
+                
+                filteredHistory = history.filter(record => {
+                    return record.startTime >= startTime && record.startTime <= endTime;
+                });
+            }
+            
+            currentPage = 1;
+            renderHistory();
+        }
+        
+        function clearFilters() {
+            document.getElementById('filterStartDate').value = '';
+            document.getElementById('filterEndDate').value = '';
+            filteredHistory = loadHistory();
+            currentPage = 1;
+            renderHistory();
+        }
+        
+        function changePageSize() {
+            const select = document.getElementById('pageSize');
+            pageSize = select.value === 'all' ? 999999 : parseInt(select.value);
+            currentPage = 1;
+            renderHistory();
+        }
+        
+        function goToPage(direction) {
+            const totalPages = Math.ceil(filteredHistory.length / pageSize);
+            
+            if (direction === 'prev' && currentPage > 1) {
+                currentPage--;
+            } else if (direction === 'next' && currentPage < totalPages) {
+                currentPage++;
+            }
+            
+            renderHistory();
+            
+            // 滚动到顶部
+            document.getElementById('historyList').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        // ===== 计时器功能 =====
+        let focusTimeRemaining = 25 * 60;
+        let focusTimer = null;
+        let isFocusing = false;
+        let totalPoints = 29;
+        let totalFocusCount = 33;
+        let rewardUpdateInterval = null;
+
+        function formatTime(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins.toString().padStart(2, '0')}:${secs.toString().padStart(2, '0')}`;
+        }
+
+        function formatTimeDecimal(seconds) {
+            const mins = Math.floor(seconds / 60);
+            const secs = seconds % 60;
+            return `${mins}.${secs.toString().padStart(2, '0')}`;
+        }
+
+        // 照片相关功能
+        function showPhotoGallery() {
+            const gallery = document.getElementById('photoGallery');
+            if (!gallery) return;
+            
+            gallery.innerHTML = '';
+
+            if (window.postureMonitor?.stats?.screenshots?.length > 0) {
+                window.postureMonitor.stats.screenshots.forEach((photo, index) => {
+                    const photoItem = document.createElement('div');
+                    photoItem.className = 'photo-item';
+                    photoItem.innerHTML = `
+                        <img src="${photo.dataUrl}" alt="违规记录 ${index + 1}">
+                        <div class="photo-info">
+                            <span class="photo-reason">${photo.reason === 'distance' ? '距离过近' : '姿势不正'}</span>
+                            <span class="photo-time">${photo.timestamp}</span>
+                        </div>
+                    `;
+                    gallery.appendChild(photoItem);
+                });
+            } else {
+                gallery.innerHTML = '<p style="text-align: center; color: #999; padding: 20px;">暂无违规记录</p>';
+            }
+        }
+
+        function downloadPhotos() {
+            if (!window.postureMonitor?.stats?.screenshots?.length) {
+                alert('暂无照片可下载');
+                return;
+            }
+            
+            window.postureMonitor.stats.screenshots.forEach((photo, index) => {
+                const link = document.createElement('a');
+                link.href = photo.dataUrl;
+                link.download = `violation_${index + 1}_${photo.timestamp}.png`;
+                link.click();
+            });
+            alert('已下载 ' + window.postureMonitor.stats.screenshots.length + ' 张照片');
+        }
+
+        function clearPhotos() {
+            if (window.postureMonitor?.stats?.screenshots) {
+                if (confirm('确定要清空所有违规记录吗？')) {
+                    window.postureMonitor.stats.screenshots = [];
+                    updatePhotoCount();
+                    showPhotoGallery();
+                }
+            }
+        }
+
+        function downloadAllPhotos() {
+            if (!window.postureMonitor?.stats?.screenshots?.length) {
+                alert('暂无照片可下载');
+                return;
+            }
+            
+            window.postureMonitor.stats.screenshots.forEach((photo, index) => {
+                const link = document.createElement('a');
+                link.download = `violation_${index + 1}_${photo.timestamp.replace(/[:\s]/g, '_')}.png`;
+                link.href = photo.dataUrl;
+                link.click();
+            });
+            alert('已下载 ' + window.postureMonitor.stats.screenshots.length + ' 张照片');
+        }
+
+        function clearAllPhotos() {
+            if (!window.postureMonitor?.stats?.screenshots) return;
+            
+            if (confirm('确定要清空所有违规记录吗？')) {
+                window.postureMonitor.stats.screenshots = [];
+                updatePhotoCount();
+                showPhotoGallery();
+            }
+        }
+
+        function updatePhotoCount() {
+            const count = window.postureMonitor?.stats?.screenshots?.length || 0;
+            const photoCountEl = document.getElementById('photoCount');
+            if (photoCountEl) {
+                photoCountEl.textContent = `📷 ${count}张`;
+            }
+        }
+
+        // 积分相关
+        function updatePoints(delta) {
+            totalPoints += delta;
+            document.getElementById('totalPoints').textContent = totalPoints;
+
+            const progress = (totalPoints % 10) * 10;
+            document.getElementById('progressFill').style.width = progress + '%';
+            document.getElementById('nextRewardDistance').textContent = 10 - (totalPoints % 10);
+
+            if (totalPoints % 10 === 0 && delta > 0) {
+                showReward();
+            }
+        }
+
+        function showReward() {
+            if (window.popupManager) {
+                window.popupManager.showReward(10);
+            }
+            if (window.voiceReminder) {
+                window.voiceReminder.playReward();
+            }
+            if (window.mascotManager) {
+                window.mascotManager.onReward();
+            }
+        }
+
+        // 专注功能
+        async function startFocusing() {
+            console.log('=== startFocusing 被调用 ===');
+            
+            // 通知父窗口监测开始
+            if (window.VisionDistBridge) {
+                window.VisionDistBridge.startMonitorSession();
+            }
+            
+            try {
+                if (isFocusing) {
+                    console.log('已经在监测中，返回');
+                    return;
+                }
+
+                console.log('1. 设置 isFocusing = true');
+                isFocusing = true;
+
+                console.log('2. 切换页面显示');
+                const timerIdleMode = document.getElementById('timerIdleMode');
+                const timerFocusingMode = document.getElementById('timerFocusingMode');
+                const monitorContainer = document.getElementById('monitorContainer');
+                const cameraTip = document.getElementById('cameraTip');
+                
+                if (!timerIdleMode || !timerFocusingMode || !monitorContainer) {
+                    console.error('关键元素不存在:', {
+                        timerIdleMode: !!timerIdleMode,
+                        timerFocusingMode: !!timerFocusingMode,
+                        monitorContainer: !!monitorContainer
+                    });
+                    return;
+                }
+                
+                timerIdleMode.classList.add('hidden');
+                timerFocusingMode.classList.remove('hidden');
+                monitorContainer.classList.add('active');
+                if (cameraTip) cameraTip.style.display = 'none';
+
+                console.log('3. 重置统计数据');
+                if (window.postureMonitor) {
+                    window.postureMonitor.resetStats();
+                    updateRewardUI();
+                } else {
+                    console.warn('window.postureMonitor 不存在');
+                }
+                updatePhotoCount();
+
+                console.log('4. 播放开始提示');
+                // 播放开始监测语音和弹窗
+                try {
+                    if (window.voiceReminder) {
+                        window.voiceReminder.playStartMonitor();
+                    }
+                } catch (e) {
+                    console.warn('语音提示失败:', e.message);
+                }
+                
+                try {
+                    if (window.popupManager) {
+                        window.popupManager.showStartMonitor();
+                    }
+                } catch (e) {
+                    console.warn('弹窗显示失败:', e.message);
+                }
+                
+                try {
+                    if (window.mascotManager) {
+                        window.mascotManager.onStartMonitor();
+                    }
+                } catch (e) {
+                    console.warn('吉祥物动画失败:', e.message);
+                }
+
+                console.log('5. 启动摄像头');
+                if (window.postureMonitor) {
+                    const success = await window.postureMonitor.start();
+                    console.log('摄像头启动结果:', success);
+                    
+                    if (!success) {
+                        alert('摄像头启动失败，请检查权限');
+                        stopFocusing();
+                        return;
+                    }
+                    
+                    // 强制确保video播放
+                    setTimeout(() => {
+                        const video = document.getElementById('monitorVideo');
+                        if (video && video.srcObject) {
+                            console.log('强制播放video, readyState:', video.readyState);
+                            video.play().then(() => {
+                                console.log('Video播放成功');
+                            }).catch(e => {
+                                console.error('Video播放失败:', e);
+                            });
+                        } else {
+                            console.warn('Video元素或srcObject不存在');
+                        }
+                    }, 500);
+                } else {
+                    console.error('window.postureMonitor 不存在，无法启动摄像头');
+                }
+
+                console.log('6. 启动计时器');
+                updateTimerDisplay();
+                focusTimer = setInterval(() => {
+                    focusTimeRemaining--;
+                    updateTimerDisplay();
+                    updatePhotoCount();
+
+                    if (focusTimeRemaining % 60 === 0 && focusTimeRemaining > 0) {
+                        updatePoints(1);
+                    }
+
+                    // 每20分钟休息提醒
+                    if (focusTimeRemaining > 0 && (25 * 60 - focusTimeRemaining) % (20 * 60) === 0 && focusTimeRemaining !== 25 * 60) {
+                        if (window.popupManager) {
+                            window.popupManager.showBreakReminder(20);
+                        }
+                    }
+
+                    if (focusTimeRemaining <= 0) {
+                        focusComplete();
+                    }
+                }, 1000);
+
+                console.log('7. 启动奖励更新');
+                rewardUpdateInterval = setInterval(() => {
+                    if (window.postureMonitor) {
+                        updateRewardUI();
+                        updateIdealDistanceTracker();
+                    }
+                }, 1000);
+
+                const panel = document.getElementById('rewardStatsPanel');
+                if (panel && window.postureMonitor?.settings?.enablePositiveReward) {
+                    panel.style.display = 'block';
+                }
+                
+                // 记录会话开始时间
+                sessionStartTime = Date.now();
+                
+                console.log('=== startFocusing 完成 ===');
+                
+            } catch (error) {
+                console.error('=== startFocusing 发生错误 ===');
+                console.error('错误信息:', error);
+                console.error('错误堆栈:', error.stack);
+                alert('启动监测时发生错误: ' + error.message);
+                isFocusing = false;
+                sessionStartTime = null;
+            }
+        }
+
+        function updateTimerDisplay() {
+            const display = document.getElementById('focusingTimeDisplay');
+            if (display) {
+                display.textContent = formatTimeDecimal(focusTimeRemaining);
+            }
+        }
+
+        function updateRewardUI() {
+            if (!window.postureMonitor) return;
+            const stats = window.postureMonitor.rewardStats;
+
+            document.getElementById('totalPoints').textContent = stats.totalPoints;
+            document.getElementById('totalIdealTime').textContent = Math.floor(stats.totalIdealTime / 60);
+
+            const progress = document.getElementById('streakProgress');
+            if (progress) {
+                const pct = ((stats.totalIdealTime % 1800) / 1800) * 100;
+                progress.style.width = `${pct}%`;
+            }
+
+            const nextReward = document.getElementById('nextRewardTime');
+            if (nextReward) {
+                nextReward.textContent = Math.floor((1800 - (stats.totalIdealTime % 1800)) / 60);
+            }
+        }
+
+        function updateIdealDistanceTracker() {
+            if (!window.postureMonitor) return;
+            const stats = window.postureMonitor.rewardStats;
+            const distance = window.postureMonitor.estimatedDistance;
+            const settings = window.postureMonitor.settings;
+
+            const tracker = document.getElementById('idealDistanceTracker');
+            const isAtIdeal = distance >= settings.idealDistance && distance > 0;
+
+            if (tracker) {
+                tracker.style.display = isAtIdeal ? 'block' : 'none';
+
+                if (isAtIdeal) {
+                    const mins = Math.floor(stats.currentStreak / 60);
+                    const secs = stats.currentStreak % 60;
+                    document.getElementById('currentStreak').textContent = `${mins}:${String(secs).padStart(2, '0')}`;
+                    document.getElementById('nextCelebration').textContent = 60 - (stats.currentStreak % 60);
+                }
+            }
+        }
+
+        let sessionStartTime = null; // 记录会话开始时间
+        
+        function stopFocusing() {
+            // 通知父窗口监测结束
+            if (window.VisionDistBridge) {
+                window.VisionDistBridge.endMonitorSession();
+            }
+            if (!isFocusing) return;
+
+            isFocusing = false;
+
+            if (focusTimer) {
+                clearInterval(focusTimer);
+                focusTimer = null;
+            }
+
+            if (rewardUpdateInterval) {
+                clearInterval(rewardUpdateInterval);
+                rewardUpdateInterval = null;
+            }
+
+            // 保存历史记录
+            if (window.postureMonitor && sessionStartTime) {
+                const stats = window.postureMonitor.getStats();
+                const endTime = Date.now();
+                const duration = Math.round((endTime - sessionStartTime) / 1000); // 秒
+                
+                const record = {
+                    startTime: sessionStartTime,
+                    endTime: endTime,
+                    duration: duration,
+                    stats: {
+                        headTiltCount: stats.headTiltCount || 0,
+                        distanceCount: stats.distanceCount || 0,
+                        maxTilt: stats.maxTilt || 0,
+                        minDistance: stats.minDistance || 999
+                    },
+                    score: calculateScore({
+                        headTiltCount: stats.headTiltCount || 0,
+                        distanceCount: stats.distanceCount || 0,
+                        duration: duration
+                    })
+                };
+                
+                addHistoryRecord(record);
+                sessionStartTime = null;
+            }
+
+            if (window.postureMonitor) {
+                window.postureMonitor.stop();
+            }
+
+            // 播放结束监测语音和弹窗
+            try {
+                if (window.voiceReminder) {
+                    window.voiceReminder.playEndMonitor();
+                }
+            } catch (e) {
+                console.warn('语音播放失败:', e);
+            }
+            
+            document.getElementById('timerIdleMode').classList.remove('hidden');
+            document.getElementById('timerFocusingMode').classList.add('hidden');
+            document.getElementById('monitorContainer').classList.remove('active');
+
+            focusTimeRemaining = 25 * 60;
+            document.getElementById('timerDisplay').textContent = '25:00';
+
+            if (window.postureMonitor) {
+                const stats = window.postureMonitor.getStats();
+                console.log('专注统计:', stats);
+            }
+            
+            try {
+                if (window.popupManager) {
+                    const stats = window.postureMonitor ? window.postureMonitor.getStats() : null;
+                    window.popupManager.showEndMonitor(stats);
+                }
+            } catch (e) {
+                console.warn('弹窗显示失败:', e);
+            }
+            
+            try {
+                if (window.mascotManager) {
+                    window.mascotManager.onEndMonitor();
+                }
+            } catch (e) {
+                console.warn('吉祥物动画失败:', e);
+            }
+
+            // 显示违规照片
+            if (window.postureMonitor?.stats?.screenshots?.length > 0) {
+                setTimeout(() => {
+                    showPhotoGallery();
+                }, 2000);
+            }
+        }
+
+        function focusComplete() {
+            totalFocusCount++;
+            document.getElementById('totalFocusCount').textContent = totalFocusCount;
+            updatePoints(10);
+            stopFocusing();
+        }
+
+        function addNewTask() {
+            alert('添加新任务功能开发中...');
+        }
+
+        // 校准功能
+        function calibrateDistance() {
+            const realDistance = prompt('请输入当前实际距离(厘米):', '50');
+            if (realDistance && !isNaN(realDistance)) {
+                const success = window.postureMonitor.calibrate(parseInt(realDistance));
+                if (!success) {
+                    alert('校准失败：请确保面部在摄像头中清晰可见');
+                } else {
+                    alert('校准成功！');
+                }
+            }
+        }
+
+
+
+        function openSettings() {
+            document.getElementById('settingsModal').classList.add('show');
+        }
+
+        function closeSettings() {
+            document.getElementById('settingsModal').classList.remove('show');
+        }
+
+        function updateSettingDisplay(type, value) {
+            document.getElementById(`${type}Value`).textContent = value;
+        }
+
+        function togglePositiveReward() {
+            const toggle = document.getElementById('positiveRewardToggle');
+            toggle.classList.toggle('active');
+        }
+        
+        function toggleVoiceEnabled() {
+            const toggle = document.getElementById('voiceEnabledToggle');
+            toggle.classList.toggle('active');
+            
+            // 更新语音系统状态
+            if (window.voiceReminder) {
+                const enabled = toggle.classList.contains('active');
+                window.voiceReminder.setEnabled(enabled);
+                
+                // 播放提示音
+                if (enabled) {
+                    window.voiceReminder.playCustom('语音提醒已开启~');
+                }
+            }
+        }
+        
+        function changeVoiceStyle(style) {
+            if (window.voiceReminder) {
+                window.voiceReminder.setStyle(style);
+                
+                // 播放示例语音
+                const styleNames = {
+                    'random': '随机切换',
+                    'doraemon': '哆啦A梦',
+                    'pikachu': '皮卡丘',
+                    'popeye': '大力水手',
+                    'genie': '阿拉丁精灵'
+                };
+                
+                if (style !== 'random') {
+                    window.voiceReminder.playCustom(`你好！我是${styleNames[style]}~`);
+                }
+            }
+        }
+
+        function applyPreset(preset) {
+            const presets = {
+                child: { idealDistance: 45, minDistance: 35 },
+                teen: { idealDistance: 50, minDistance: 38 },
+                adult: { idealDistance: 55, minDistance: 40 }
+            };
+            const p = presets[preset];
+            if (p) {
+                document.getElementById('idealDistanceInput').value = p.idealDistance;
+                document.getElementById('idealDistanceValue').textContent = p.idealDistance;
+                document.getElementById('minDistanceInput').value = p.minDistance;
+                document.getElementById('minDistanceValue').textContent = p.minDistance;
+            }
+        }
+
+        function saveSettings() {
+            if (window.postureMonitor) {
+                window.postureMonitor.updateSettings({
+                    idealDistance: parseInt(document.getElementById('idealDistanceInput').value),
+                    minDistance: parseInt(document.getElementById('minDistanceInput').value),
+                    warningInterval: parseInt(document.getElementById('warningIntervalInput').value),
+                    enablePositiveReward: document.getElementById('positiveRewardToggle').classList.contains('active')
+                });
+            }
+            
+            // 保存语音设置
+            if (window.voiceReminder) {
+                const voiceEnabled = document.getElementById('voiceEnabledToggle').classList.contains('active');
+                const voiceStyle = document.getElementById('voiceStyleSelect').value;
+                
+                window.voiceReminder.setEnabled(voiceEnabled);
+                window.voiceReminder.setStyle(voiceStyle);
+                
+                // 保存到 localStorage
+                localStorage.setItem('visiondist_voice_settings', JSON.stringify({
+                    enabled: voiceEnabled,
+                    style: voiceStyle
+                }));
+            }
+            
+            closeSettings();
+
+            const panel = document.getElementById('rewardStatsPanel');
+            if (panel) {
+                panel.style.display = window.postureMonitor?.settings?.enablePositiveReward ? 'block' : 'none';
+            }
+        }
+        
+        function openCalibrationModal() {
+            const modal = document.getElementById('calibrationModal');
+            if (!modal) return;
+            
+            if (!window.postureMonitor) {
+                alert('请先启动监测系统');
+                return;
+            }
+            
+            if (!window.postureMonitor.estimatedDistance || window.postureMonitor.estimatedDistance === 0) {
+                alert('请先开始监测，让系统检测到您的人脸');
+                return;
+            }
+            
+            const currentDistance = Math.round(window.postureMonitor.estimatedDistance);
+            document.getElementById('currentCalculatedDistance').textContent = currentDistance;
+            
+            modal.classList.add('show');
+            
+            const distanceUpdateInterval = setInterval(() => {
+                if (!modal.classList.contains('show')) {
+                    clearInterval(distanceUpdateInterval);
+                    return;
+                }
+                
+                if (window.postureMonitor && window.postureMonitor.estimatedDistance) {
+                    const distance = Math.round(window.postureMonitor.estimatedDistance);
+                    document.getElementById('currentCalculatedDistance').textContent = distance;
+                }
+            }, 500);
+        }
+        
+        function closeCalibrationModal() {
+            const modal = document.getElementById('calibrationModal');
+            if (modal) {
+                modal.classList.remove('show');
+            }
+            document.getElementById('actualDistanceInput').value = '';
+        }
+        
+        function performCalibration() {
+            const actualDistance = parseFloat(document.getElementById('actualDistanceInput').value);
+            
+            if (!actualDistance || actualDistance < 20 || actualDistance > 100) {
+                alert('请输入有效的距离（20-100厘米）');
+                return;
+            }
+            
+            if (!window.postureMonitor) {
+                alert('监测系统未初始化');
+                return;
+            }
+            
+            const success = window.postureMonitor.calibrateDistance(actualDistance);
+            
+            if (success) {
+                const factor = window.postureMonitor.settings.calibrationFactor.toFixed(2);
+                document.getElementById('calibrationStatus').textContent = `已校准 (系数: ${factor})`;
+                
+                if (window.voiceReminder) {
+                    window.voiceReminder.playCustom('距离校准成功！');
+                }
+                
+                closeCalibrationModal();
+                
+                setTimeout(() => {
+                    alert(`校准成功！\n校准系数: ${factor}\n后续监测将使用校准后的距离`);
+                }, 300);
+            } else {
+                alert('校准失败，请确保系统正在监测您的人脸');
+            }
+        }
+        
+        function resetCalibration() {
+            if (!window.postureMonitor) {
+                alert('监测系统未初始化');
+                return;
+            }
+            
+            if (confirm('确定要重置校准吗？将恢复默认计算方式。')) {
+                window.postureMonitor.resetCalibration();
+                document.getElementById('calibrationStatus').textContent = '未校准';
+                
+                if (window.voiceReminder) {
+                    window.voiceReminder.playCustom('校准已重置');
+                }
+                
+                closeCalibrationModal();
+            }
+        }
+        
+        function updateCalibrationStatus() {
+            if (window.postureMonitor && window.postureMonitor.settings.isCalibrated) {
+                const factor = window.postureMonitor.settings.calibrationFactor.toFixed(2);
+                document.getElementById('calibrationStatus').textContent = `已校准 (系数: ${factor})`;
+            } else {
+                document.getElementById('calibrationStatus').textContent = '未校准';
+            }
+        }
+
+        // ===== 趋势图表功能 =====
+        let trendChart = null;
+        
+        function updateChart() {
+            const period = document.getElementById('chartPeriod')?.value || 'week';
+            const customDateRange = document.getElementById('customDateRange');
+            
+            // 显示/隐藏自定义日期选择
+            if (customDateRange) {
+                if (period === 'custom') {
+                    customDateRange.classList.remove('hidden');
+                } else {
+                    customDateRange.classList.add('hidden');
+                }
+            }
+            
+            if (period !== 'custom') {
+                renderChart(period);
+            }
+        }
+        
+        function applyCustomDate() {
+            const startDate = document.getElementById('startDate').value;
+            const endDate = document.getElementById('endDate').value;
+            
+            if (!startDate || !endDate) {
+                alert('请选择开始和结束日期');
+                return;
+            }
+            
+            if (new Date(startDate) > new Date(endDate)) {
+                alert('开始日期不能晚于结束日期');
+                return;
+            }
+            
+            renderChart('custom', startDate, endDate);
+        }
+        
+        function renderChart(period, customStart, customEnd) {
+            const history = loadHistory();
+            
+            if (history.length === 0) return;
+            
+            // 计算日期范围
+            let startDate, endDate;
+            const now = new Date();
+            
+            if (period === 'custom') {
+                startDate = new Date(customStart);
+                endDate = new Date(customEnd);
+                endDate.setHours(23, 59, 59, 999);
+            } else if (period === 'week') {
+                startDate = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
+            } else if (period === 'month') {
+                startDate = new Date(now.getTime() - 30 * 24 * 60 * 60 * 1000);
+            } else if (period === 'quarter') {
+                startDate = new Date(now.getTime() - 90 * 24 * 60 * 60 * 1000);
+            }
+            
+            if (!endDate) {
+                endDate = now;
+            }
+            
+            // 筛选数据
+            const filteredData = history.filter(record => {
+                return record.startTime >= startDate.getTime() && record.startTime <= endDate.getTime();
+            });
+            
+            // 按日期分组并聚合数据
+            const dailyData = {};
+            
+            filteredData.forEach(record => {
+                const date = new Date(record.startTime).toLocaleDateString('zh-CN');
+                
+                if (!dailyData[date]) {
+                    dailyData[date] = {
+                        distanceCount: 0,
+                        headTiltCount: 0,
+                        scores: []
+                    };
+                }
+                
+                dailyData[date].distanceCount += record.stats.distanceCount;
+                dailyData[date].headTiltCount += record.stats.headTiltCount;
+                dailyData[date].scores.push(record.score);
+            });
+            
+            // 准备图表数据
+            const labels = Object.keys(dailyData).sort((a, b) => new Date(a) - new Date(b));
+            const distanceData = labels.map(date => dailyData[date].distanceCount);
+            const headTiltData = labels.map(date => dailyData[date].headTiltCount);
+            const scoreData = labels.map(date => {
+                const scores = dailyData[date].scores;
+                return Math.round(scores.reduce((sum, s) => sum + s, 0) / scores.length);
+            });
+            
+            // 销毁旧图表
+            if (trendChart) {
+                trendChart.destroy();
+            }
+            
+            // 创建新图表
+            const ctx = document.getElementById('trendChart');
+            if (!ctx) return;
+            
+            trendChart = new Chart(ctx, {
+                type: 'line',
+                data: {
+                    labels: labels,
+                    datasets: [
+                        {
+                            label: '距离过近次数',
+                            data: distanceData,
+                            borderColor: '#ef4444',
+                            backgroundColor: 'rgba(239, 68, 68, 0.1)',
+                            tension: 0.4,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: '姿势不正次数',
+                            data: headTiltData,
+                            borderColor: '#f59e0b',
+                            backgroundColor: 'rgba(245, 158, 11, 0.1)',
+                            tension: 0.4,
+                            yAxisID: 'y'
+                        },
+                        {
+                            label: '健康评分',
+                            data: scoreData,
+                            borderColor: '#22c55e',
+                            backgroundColor: 'rgba(34, 197, 94, 0.1)',
+                            tension: 0.4,
+                            yAxisID: 'y1'
+                        }
+                    ]
+                },
+                options: {
+                    responsive: true,
+                    maintainAspectRatio: false,
+                    interaction: {
+                        mode: 'index',
+                        intersect: false,
+                    },
+                    plugins: {
+                        legend: {
+                            display: false
+                        },
+                        tooltip: {
+                            backgroundColor: 'rgba(0, 0, 0, 0.8)',
+                            padding: 12,
+                            titleFont: {
+                                size: 14
+                            },
+                            bodyFont: {
+                                size: 13
+                            }
+                        }
+                    },
+                    scales: {
+                        y: {
+                            type: 'linear',
+                            display: true,
+                            position: 'left',
+                            title: {
+                                display: true,
+                                text: '违规次数'
+                            },
+                            beginAtZero: true
+                        },
+                        y1: {
+                            type: 'linear',
+                            display: true,
+                            position: 'right',
+                            title: {
+                                display: true,
+                                text: '健康评分'
+                            },
+                            min: 0,
+                            max: 100,
+                            grid: {
+                                drawOnChartArea: false,
+                            }
+                        }
+                    }
+                }
+            });
+        }
+
+        // 页面加载时初始化设置 UI
+        document.addEventListener('DOMContentLoaded', () => {
+            if (window.postureMonitor) {
+                updateRewardUI();
+            }
+            
+            // 初始化统计页面
+            updateStatsPage();
+            
+            // 初始化筛选数据
+            filteredHistory = loadHistory();
+            
+            // 初始化语音设置
+            initVoiceSettings();
+        });
+        
+        // 初始化语音设置
+        function initVoiceSettings() {
+            try {
+                const saved = localStorage.getItem('visiondist_voice_settings');
+                if (saved) {
+                    const settings = JSON.parse(saved);
+                    
+                    // 恢复语音开关状态
+                    const voiceToggle = document.getElementById('voiceEnabledToggle');
+                    if (voiceToggle) {
+                        if (settings.enabled) {
+                            voiceToggle.classList.add('active');
+                        } else {
+                            voiceToggle.classList.remove('active');
+                        }
+                    }
+                    
+                    // 恢复语音风格选择
+                    const voiceStyleSelect = document.getElementById('voiceStyleSelect');
+                    if (voiceStyleSelect && settings.style) {
+                        voiceStyleSelect.value = settings.style;
+                    }
+                    
+                    // 应用到语音系统
+                    if (window.voiceReminder) {
+                        window.voiceReminder.setEnabled(settings.enabled !== false);
+                        if (settings.style) {
+                            window.voiceReminder.setStyle(settings.style);
+                        }
+                    }
+                }
+            } catch (e) {
+                console.error('加载语音设置失败:', e);
+            }
+        }
+        
+        // ===== 挑战模式功能 =====
+        let challengeState = {
+            mode: null, // 'local' or 'online'
+            player1: { name: '玩家1', score: 0, distanceViolations: 0, postureViolations: 0 },
+            player2: { name: '玩家2', score: 0, distanceViolations: 0, postureViolations: 0 },
+            currentPlayer: 1,
+            startTime: null,
+            duration: 5 * 60, // 5分钟
+            timer: null,
+            scoreInterval: null
+        };
+        
+        function openChallengeModal() {
+            document.getElementById('challengeModal').classList.add('active');
+            document.getElementById('overlay').classList.add('active');
+        }
+        
+        
+        function startLocalChallenge() {
+            // 获取玩家昵称
+            const player1Name = document.getElementById('player1Name').value.trim() || '玩家1';
+            const player2Name = document.getElementById('player2Name').value.trim() || '玩家2';
+            
+            // 初始化挑战状态
+            challengeState = {
+                mode: 'local',
+                player1: { name: player1Name, score: 0, distanceViolations: 0, postureViolations: 0 },
+                player2: { name: player2Name, score: 0, distanceViolations: 0, postureViolations: 0 },
+                currentPlayer: 1,
+                startTime: Date.now(),
+                duration: 5 * 60,
+                timer: null,
+                scoreInterval: null
+            };
+            
+            // 关闭准备弹窗
+            closeModal('challengePrepareModal');
+            
+            // 显示对战界面
+            document.getElementById('challengeBattleOverlay').classList.add('show');
+            
+            // 更新显示
+            document.getElementById('currentPlayerName').textContent = player1Name;
+            document.getElementById('player1NameDisplay').textContent = player1Name;
+            document.getElementById('player2NameDisplay').textContent = player2Name;
+            
+            // 开始监测
+            if (window.postureMonitor && !window.postureMonitor.isMonitoring) {
+                window.postureMonitor.startMonitoring();
+            }
+            
+            // 启动计时器
+            startChallengeTimer();
+            
+            // 启动得分计算
+            startChallengeScoring();
+            
+            // 播放开始语音
+            if (window.voiceReminder) {
+                window.voiceReminder.playCustom(`${player1Name}，准备好了吗？挑战开始！`);
+            }
+        }
+        
+        function startChallengeTimer() {
+            let remaining = challengeState.duration;
+            
+            challengeState.timer = setInterval(() => {
+                remaining--;
+                
+                const minutes = Math.floor(remaining / 60);
+                const seconds = remaining % 60;
+                document.getElementById('battleTimer').textContent = 
+                    `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+                
+                if (remaining <= 0) {
+                    // 第一位玩家时间到
+                    if (challengeState.currentPlayer === 1) {
+                        switchToPlayer2();
+                    } else {
+                        // 第二位玩家时间到，结束对战
+                        endChallenge();
+                    }
+                }
+            }, 1000);
+        }
+        
+        function startChallengeScoring() {
+            challengeState.scoreInterval = setInterval(() => {
+                const currentPlayer = challengeState.currentPlayer === 1 ? 
+                    challengeState.player1 : challengeState.player2;
+                
+                // 检查当前状态
+                if (window.postureMonitor && window.postureMonitor.isMonitoring) {
+                    const distance = window.postureMonitor.estimatedDistance;
+                    const tilt = Math.abs(window.postureMonitor.currentTiltAngle);
+                    const minDistance = window.postureMonitor.settings.minDistance;
+                    
+                    // 距离违规
+                    if (distance > 0 && distance < minDistance) {
+                        currentPlayer.score -= 10;
+                        currentPlayer.distanceViolations++;
+                        updateBattleMessage('⚠️ 距离过近！-10分');
+                    }
+                    // 姿势违规
+                    else if (tilt > 15) {
+                        currentPlayer.score -= 5;
+                        currentPlayer.postureViolations++;
+                        updateBattleMessage('⚠️ 姿势不正！-5分');
+                    }
+                    // 保持良好
+                    else if (distance > 0) {
+                        currentPlayer.score += 1;
+                    }
+                }
+                
+                // 更新显示
+                updateChallengeDisplay();
+            }, 1000);
+        }
+        
+        function updateChallengeDisplay() {
+            document.getElementById('player1Score').textContent = challengeState.player1.score;
+            document.getElementById('player2Score').textContent = challengeState.player2.score;
+            
+            const currentPlayer = challengeState.currentPlayer === 1 ? 
+                challengeState.player1 : challengeState.player2;
+            
+            document.getElementById('currentDistanceViolations').textContent = currentPlayer.distanceViolations;
+            document.getElementById('currentPostureViolations').textContent = currentPlayer.postureViolations;
+        }
+        
+        function updateBattleMessage(message) {
+            const messageEl = document.getElementById('battleMessage');
+            messageEl.textContent = message;
+            messageEl.classList.add('flash');
+            setTimeout(() => {
+                messageEl.classList.remove('flash');
+            }, 500);
+        }
+        
+        function switchToPlayer2() {
+            // 停止计时器
+            clearInterval(challengeState.timer);
+            clearInterval(challengeState.scoreInterval);
+            
+            // 切换玩家
+            challengeState.currentPlayer = 2;
+            challengeState.startTime = Date.now();
+            
+            // 更新显示
+            document.getElementById('currentPlayerName').textContent = challengeState.player2.name;
+            
+            // 播放切换语音
+            if (window.voiceReminder) {
+                window.voiceReminder.playCustom(`${challengeState.player1.name}完成！现在轮到${challengeState.player2.name}了！`);
+            }
+            
+            // 显示切换提示
+            alert(`${challengeState.player1.name}的回合结束！\n得分：${challengeState.player1.score}\n\n现在轮到${challengeState.player2.name}了！`);
+            
+            // 重新开始计时
+            startChallengeTimer();
+            startChallengeScoring();
+        }
+        
+        function endChallenge() {
+            // 停止计时器
+            clearInterval(challengeState.timer);
+            clearInterval(challengeState.scoreInterval);
+            
+            // 停止监测
+            if (window.postureMonitor && window.postureMonitor.isMonitoring) {
+                window.postureMonitor.stopMonitoring();
+            }
+            
+            // 隐藏对战界面
+            document.getElementById('challengeBattleOverlay').classList.remove('show');
+            
+            // 显示结果
+            showChallengeResult();
+        }
+        
+        function showChallengeResult() {
+            const winner = challengeState.player1.score > challengeState.player2.score ? 
+                challengeState.player1 : 
+                (challengeState.player1.score < challengeState.player2.score ? 
+                    challengeState.player2 : null);
+            
+            // 更新结果显示
+            if (winner) {
+                document.getElementById('winnerText').textContent = `${winner.name} 获胜！`;
+            } else {
+                document.getElementById('winnerText').textContent = '平局！';
+            }
+            
+            document.getElementById('result1Name').textContent = challengeState.player1.name;
+            document.getElementById('result1Score').textContent = challengeState.player1.score;
+            document.getElementById('result1Distance').textContent = challengeState.player1.distanceViolations;
+            document.getElementById('result1Posture').textContent = challengeState.player1.postureViolations;
+            
+            document.getElementById('result2Name').textContent = challengeState.player2.name;
+            document.getElementById('result2Score').textContent = challengeState.player2.score;
+            document.getElementById('result2Distance').textContent = challengeState.player2.distanceViolations;
+            document.getElementById('result2Posture').textContent = challengeState.player2.postureViolations;
+            
+            // 保存对战历史
+            if (window.challengeHistory) {
+                const winnerType = winner ? 
+                    (winner === challengeState.player1 ? 'player1' : 'player2') : 
+                    'draw';
+                
+                window.challengeHistory.saveBattle({
+                    type: 'local',
+                    player1Name: challengeState.player1.name,
+                    player2Name: challengeState.player2.name,
+                    player1Score: challengeState.player1.score,
+                    player2Score: challengeState.player2.score,
+                    player1Violations: {
+                        distance: challengeState.player1.distanceViolations,
+                        posture: challengeState.player1.postureViolations
+                    },
+                    player2Violations: {
+                        distance: challengeState.player2.distanceViolations,
+                        posture: challengeState.player2.postureViolations
+                    },
+                    duration: 300, // 5分钟
+                    winner: winnerType
+                });
+                
+                // 更新历史记录卡片显示
+                updateHistoryCardStats();
+            }
+            
+            // 显示结果弹窗
+            document.getElementById('challengeResultModal').classList.add('active');
+            document.getElementById('overlay').classList.add('active');
+            
+            // 播放结果语音
+            if (window.voiceReminder && winner) {
+                window.voiceReminder.playCustom(`恭喜${winner.name}获胜！`);
+            }
+        }
+        
+        function quitChallenge() {
+            if (confirm('确定要退出挑战吗？')) {
+                clearInterval(challengeState.timer);
+                clearInterval(challengeState.scoreInterval);
+                
+                if (window.postureMonitor && window.postureMonitor.isMonitoring) {
+                    window.postureMonitor.stopMonitoring();
+                }
+                
+                document.getElementById('challengeBattleOverlay').classList.remove('show');
+            }
+        }
+        
+        function restartChallenge() {
+            closeModal('challengeResultModal');
+            document.getElementById('challengePrepareModal').classList.add('active');
+            document.getElementById('overlay').classList.add('active');
+        }
+        
+        // ===== 在线对战功能 =====
+        
+        function selectChallengeMode(mode) {
+            if (mode === 'local') {
+                closeModal('challengeModal');
+                document.getElementById('challengePrepareModal').classList.add('active');
+                document.getElementById('overlay').classList.add('active');
+            } else if (mode === 'online') {
+                closeModal('challengeModal');
+                document.getElementById('onlineChallengeModal').classList.add('active');
+                document.getElementById('overlay').classList.add('active');
+            }
+        }
+
+        // ===== 在线对战房间列表功能 =====
+
+        // 显示房间列表
+        function showRoomList() {
+            closeModal('onlineChallengeModal');
+            document.getElementById('roomListModal').classList.add('active');
+            document.getElementById('overlay').classList.add('active');
+            refreshRoomList();
+        }
+
+        // 刷新房间列表
+        function refreshRoomList() {
+            const roomList = document.getElementById('roomList');
+            const roomCount = document.getElementById('roomCount');
+            const noRoomsHint = document.getElementById('noRoomsHint');
+
+            if (!window.onlineChallengeManager) {
+                console.error('在线对战管理器未初始化');
+                return;
+            }
+
+            const rooms = window.onlineChallengeManager.refreshRoomList();
+
+            roomCount.textContent = `${rooms.length} 个房间`;
+
+            if (rooms.length === 0) {
+                roomList.innerHTML = `
+                    <div class="no-rooms">
+                        <div class="no-rooms-icon">🏠</div>
+                        <div class="no-rooms-text">暂无可用房间</div>
+                        <div class="no-rooms-hint">点击"创建房间"开始等待对手</div>
+                    </div>
+                `;
+                return;
+            }
+
+            roomList.innerHTML = rooms.map(room => `
+                <div class="room-item" onclick="joinRoomFromList('${room.id}', '${room.hostName}')">
+                    <div class="room-item-info">
+                        <div class="room-item-avatar">👤</div>
+                        <div class="room-item-details">
+                            <div class="room-item-host">${room.hostName} 的房间</div>
+                            <div class="room-item-id">ID: ${room.id.substring(0, 8)}...</div>
+                        </div>
+                    </div>
+                    <div class="room-item-status">等待中</div>
+                    <button class="room-item-join">加入</button>
+                </div>
+            `).join('');
+        }
+
+        // 从房间列表加入房间
+        async function joinRoomFromList(roomId, hostName) {
+            const playerName = document.getElementById('listPlayerName').value.trim() || '玩家';
+
+            closeModal('roomListModal');
+
+            // 显示加载状态
+            showNotification(`正在加入 ${hostName} 的房间...`, 'info');
+
+            try {
+                const result = await window.onlineChallengeManager.joinRoom(roomId, playerName);
+
+                if (result.success) {
+                    showNotification('成功加入房间！', 'success');
+                    // 显示对战准备界面
+                    showOnlineBattleReady(hostName);
+                } else {
+                    showNotification(result.message || '加入失败', 'error');
+                }
+            } catch (error) {
+                showNotification('加入房间失败：' + error.message, 'error');
+            }
+        }
+
+        // 快速匹配
+        async function quickMatchOnline() {
+            const playerName = prompt('请输入你的昵称：', '玩家') || '玩家';
+
+            closeModal('onlineChallengeModal');
+            showNotification('正在匹配对手...', 'info');
+
+            try {
+                const result = await window.onlineChallengeManager.quickMatch(playerName);
+
+                if (result.success) {
+                    if (result.roomId) {
+                        // 创建了新房间，等待对手
+                        showNotification('已创建房间，等待对手加入...', 'info');
+                        document.getElementById('createRoomModal').classList.add('active');
+                        document.getElementById('overlay').classList.add('active');
+                        document.getElementById('hostPlayerName').value = playerName;
+                        document.getElementById('roomIdSection').style.display = 'block';
+                        document.getElementById('roomIdDisplay').value = result.roomId;
+                        document.getElementById('createRoomBtn').style.display = 'none';
+                    } else {
+                        // 加入了现有房间
+                        showNotification('匹配成功！', 'success');
+                    }
+                } else {
+                    showNotification(result.message || '匹配失败', 'error');
+                }
+            } catch (error) {
+                showNotification('匹配失败：' + error.message, 'error');
+            }
+        }
+
+        // 显示在线对战准备界面
+        function showOnlineBattleReady(opponentName) {
+            // 可以显示一个准备界面，等待双方确认开始
+            console.log('对手已加入:', opponentName);
+        }
+
+        function showCreateRoom() {
+            closeModal('onlineChallengeModal');
+            closeModal('roomListModal');
+            document.getElementById('createRoomModal').classList.add('active');
+            document.getElementById('overlay').classList.add('active');
+        }
+
+        function showJoinRoom() {
+            closeModal('onlineChallengeModal');
+            closeModal('roomListModal');
+            document.getElementById('joinRoomModal').classList.add('active');
+            document.getElementById('overlay').classList.add('active');
+        }
+        
+        async function createOnlineRoom() {
+            const playerName = document.getElementById('hostPlayerName').value.trim() || '玩家1';
+            const btn = document.getElementById('createRoomBtn');
+            
+            btn.disabled = true;
+            btn.textContent = '创建中...';
+            
+            try {
+                const result = await window.onlineChallengeManager.createRoom(playerName);
+                
+                if (result.success) {
+                    // 显示房间ID
+                    document.getElementById('roomIdDisplay').value = result.roomId;
+                    document.getElementById('roomIdSection').style.display = 'block';
+                    btn.style.display = 'none';
+                    
+                    // 播放语音
+                    if (window.voiceReminder) {
+                        window.voiceReminder.playCustom('房间创建成功！等待对手加入');
+                    }
+                } else {
+                    alert(result.message);
+                    btn.disabled = false;
+                    btn.textContent = '创建房间';
+                }
+            } catch (error) {
+                alert('创建房间失败：' + error.message);
+                btn.disabled = false;
+                btn.textContent = '创建房间';
+            }
+        }
+        
+        async function joinOnlineRoom() {
+            const playerName = document.getElementById('guestPlayerName').value.trim() || '玩家2';
+            const roomId = document.getElementById('roomIdInput').value.trim();
+            
+            if (!roomId) {
+                alert('请输入房间ID');
+                return;
+            }
+            
+            try {
+                const result = await window.onlineChallengeManager.joinRoom(roomId, playerName);
+                
+                if (result.success) {
+                    closeModal('joinRoomModal');
+                    
+                    // 播放语音
+                    if (window.voiceReminder) {
+                        window.voiceReminder.playCustom('成功加入房间！');
+                    }
+                } else {
+                    alert(result.message);
+                }
+            } catch (error) {
+                alert('加入房间失败：' + error.message);
+            }
+        }
+        
+        function copyRoomId() {
+            const roomIdInput = document.getElementById('roomIdDisplay');
+            roomIdInput.select();
+            document.execCommand('copy');
+            
+            // 显示复制成功提示
+            const btn = event.target;
+            const originalText = btn.textContent;
+            btn.textContent = '✅ 已复制';
+            setTimeout(() => {
+                btn.textContent = originalText;
+            }, 2000);
+        }
+        
+        // 设置在线对战回调
+        window.onOpponentJoined = function(opponentName) {
+            console.log('对手加入:', opponentName);
+            
+            // 关闭等待界面
+            closeModal('createRoomModal');
+            
+            // 显示准备开始提示
+            if (confirm(`${opponentName} 已加入房间！\n准备开始对战吗？`)) {
+                // 发送开始信号
+                window.onlineChallengeManager.sendMessage({
+                    type: 'start_battle'
+                });
+                
+                // 开始对战
+                startOnlineBattle();
+            }
+        };
+        
+        function startOnlineBattle() {
+            // 显示在线对战界面
+            document.getElementById('onlineBattleOverlay').classList.add('show');
+            
+            // 更新显示
+            document.getElementById('onlineMyName').textContent = window.onlineChallengeManager.myName;
+            document.getElementById('onlineOpponentName').textContent = window.onlineChallengeManager.opponentName;
+            
+            // 开始对战
+            window.onlineChallengeManager.startBattle();
+        }
+        
+        window.onBattleStart = function() {
+            console.log('对战开始！');
+        };
+        
+        window.onTimerUpdate = function(remaining) {
+            const minutes = Math.floor(remaining / 60);
+            const seconds = remaining % 60;
+            document.getElementById('onlineBattleTimer').textContent = 
+                `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+        };
+        
+        window.onMyScoreUpdate = function(data) {
+            document.getElementById('onlineMyScore').textContent = data.score;
+            document.getElementById('onlineMyDistanceViolations').textContent = data.violations.distance;
+            document.getElementById('onlineMyPostureViolations').textContent = data.violations.posture;
+        };
+        
+        window.onOpponentScoreUpdate = function(data) {
+            document.getElementById('onlineOpponentScore').textContent = data.score;
+        };
+        
+        window.onBattleEnd = function(result) {
+            console.log('对战结束:', result);
+            
+            // 隐藏对战界面
+            document.getElementById('onlineBattleOverlay').classList.remove('show');
+            
+            // 显示结果
+            const winner = result.myScore > result.opponentScore ? 
+                window.onlineChallengeManager.myName : 
+                (result.myScore < result.opponentScore ? 
+                    window.onlineChallengeManager.opponentName : null);
+            
+            if (winner) {
+                document.getElementById('winnerText').textContent = `${winner} 获胜！`;
+            } else {
+                document.getElementById('winnerText').textContent = '平局！';
+            }
+            
+            document.getElementById('result1Name').textContent = window.onlineChallengeManager.myName;
+            document.getElementById('result1Score').textContent = result.myScore;
+            document.getElementById('result1Distance').textContent = result.myViolations.distance;
+            document.getElementById('result1Posture').textContent = result.myViolations.posture;
+            
+            document.getElementById('result2Name').textContent = window.onlineChallengeManager.opponentName;
+            document.getElementById('result2Score').textContent = result.opponentScore;
+            document.getElementById('result2Distance').textContent = result.opponentViolations.distance;
+            document.getElementById('result2Posture').textContent = result.opponentViolations.posture;
+            
+            // 保存在线对战历史
+            if (window.challengeHistory) {
+                const winnerType = winner ? 
+                    (winner === window.onlineChallengeManager.myName ? 'player1' : 'player2') : 
+                    'draw';
+                
+                window.challengeHistory.saveBattle({
+                    type: 'online',
+                    player1Name: window.onlineChallengeManager.myName,
+                    player2Name: window.onlineChallengeManager.opponentName,
+                    player1Score: result.myScore,
+                    player2Score: result.opponentScore,
+                    player1Violations: result.myViolations,
+                    player2Violations: result.opponentViolations,
+                    duration: 300, // 5分钟
+                    winner: winnerType
+                });
+                
+                // 更新历史记录卡片显示
+                updateHistoryCardStats();
+            }
+            
+            // 显示结果弹窗
+            document.getElementById('challengeResultModal').classList.add('active');
+            document.getElementById('overlay').classList.add('active');
+            
+            // 播放结果语音
+            if (window.voiceReminder && winner) {
+                window.voiceReminder.playCustom(`对战结束！${winner}获胜！`);
+            }
+        };
+        
+        window.onOpponentDisconnect = function() {
+            alert('对手已断开连接');
+            
+            if (document.getElementById('onlineBattleOverlay').classList.contains('show')) {
+                document.getElementById('onlineBattleOverlay').classList.remove('show');
+            }
+        };
+        
+        function quitOnlineChallenge() {
+            if (confirm('确定要退出在线对战吗？')) {
+                window.onlineChallengeManager.disconnect();
+                document.getElementById('onlineBattleOverlay').classList.remove('show');
+            }
+        }
+        
+        // ===== 对战历史功能 =====
+        
+        let historyCurrentPage = 1;
+        const historyPageSize = 10;
+        
+        // 显示对战历史弹窗
+        function showChallengeHistory() {
+            if (!window.challengeHistory) {
+                alert('历史记录系统未加载');
+                return;
+            }
+            
+            // 更新统计数据
+            updateHistoryStats();
+            
+            // 加载历史记录
+            loadHistoryRecords();
+            
+            // 显示弹窗
+            document.getElementById('challengeHistoryModal').classList.add('active');
+            document.getElementById('overlay').classList.add('active');
+        }
+        
+        // 更新历史统计数据
+        function updateHistoryStats() {
+            const stats = window.challengeHistory.getStatistics();
+            
+            document.getElementById('historyTotalBattles').textContent = stats.total;
+            document.getElementById('historyLocalBattles').textContent = stats.local;
+            document.getElementById('historyOnlineBattles').textContent = stats.online;
+            document.getElementById('historyAvgScore').textContent = stats.avgScore;
+        }
+        
+        // 更新历史记录卡片统计
+        function updateHistoryCardStats() {
+            const stats = window.challengeHistory.getStatistics();
+            
+            document.getElementById('historyCount').textContent = stats.total + '场';
+            document.getElementById('historyTotal').textContent = stats.total;
+            
+            // 计算胜率（这里简化处理，实际需要记录用户身份）
+            const winRate = stats.total > 0 ? Math.round((stats.total / 2) * 100 / stats.total) : 0;
+            document.getElementById('historyWinRate').textContent = winRate;
+        }
+        
+        // 加载历史记录
+        function loadHistoryRecords(page = 1) {
+            historyCurrentPage = page;
+            
+            const typeFilter = document.getElementById('historyTypeFilter').value;
+            let history = typeFilter === 'all' ? 
+                window.challengeHistory.getHistory() : 
+                window.challengeHistory.getHistoryByType(typeFilter);
+            
+            const total = history.length;
+            const totalPages = Math.ceil(total / historyPageSize);
+            const start = (page - 1) * historyPageSize;
+            const end = start + historyPageSize;
+            const records = history.slice(start, end);
+            
+            const listContainer = document.getElementById('historyRecordsList');
+            
+            if (records.length === 0) {
+                listContainer.innerHTML = `
+                    <div class="empty-history">
+                        <div class="empty-icon">📝</div>
+                        <div class="empty-text">暂无对战记录</div>
+                        <div class="empty-hint">开始一场对战后，这里会显示历史记录</div>
+                    </div>
+                `;
+                document.getElementById('historyPagination').style.display = 'none';
+                return;
+            }
+            
+            // 生成记录列表
+            let html = '';
+            records.forEach(record => {
+                const typeLabel = record.type === 'local' ? '本地对战' : '在线对战';
+                const typeClass = record.type === 'local' ? 'local' : 'online';
+                const winnerName = record.winner === 'player1' ? record.player1.name : 
+                                   record.winner === 'player2' ? record.player2.name : '平局';
+                const dateStr = window.challengeHistory.formatDate(record.timestamp);
+                const durationStr = window.challengeHistory.formatDuration(record.duration);
+                
+                html += `
+                    <div class="history-record-item">
+                        <div class="record-header">
+                            <span class="record-type ${typeClass}">${typeLabel}</span>
+                            <span class="record-date">${dateStr}</span>
+                            <button class="record-delete-btn" onclick="deleteHistoryRecord('${record.id}')" title="删除">🗑️</button>
+                        </div>
+                        <div class="record-players">
+                            <div class="record-player ${record.winner === 'player1' ? 'winner' : ''}">
+                                <div class="player-name">${record.player1.name} ${record.winner === 'player1' ? '👑' : ''}</div>
+                                <div class="player-score">${record.player1.score}分</div>
+                                <div class="player-violations">
+                                    <span>📏 ${record.player1.violations.distance}</span>
+                                    <span>🙇 ${record.player1.violations.posture}</span>
+                                </div>
+                            </div>
+                            <div class="record-vs">VS</div>
+                            <div class="record-player ${record.winner === 'player2' ? 'winner' : ''}">
+                                <div class="player-name">${record.player2.name} ${record.winner === 'player2' ? '👑' : ''}</div>
+                                <div class="player-score">${record.player2.score}分</div>
+                                <div class="player-violations">
+                                    <span>📏 ${record.player2.violations.distance}</span>
+                                    <span>🙇 ${record.player2.violations.posture}</span>
+                                </div>
+                            </div>
+                        </div>
+                        <div class="record-footer">
+                            <span class="record-duration">⏱️ ${durationStr}</span>
+                            <span class="record-winner">🏆 ${winnerName}</span>
+                        </div>
+                    </div>
+                `;
+            });
+            
+            listContainer.innerHTML = html;
+            
+            // 更新分页控制
+            if (totalPages > 1) {
+                document.getElementById('historyPagination').style.display = 'flex';
+                document.getElementById('historyPageInfo').textContent = `第 ${page} 页 / 共 ${totalPages} 页`;
+                document.getElementById('historyPrevBtn').disabled = page === 1;
+                document.getElementById('historyNextBtn').disabled = page === totalPages;
+            } else {
+                document.getElementById('historyPagination').style.display = 'none';
+            }
+        }
+        
+        // 筛选历史记录
+        function filterChallengeHistory() {
+            loadHistoryRecords(1);
+        }
+        
+        // 翻页
+        function goToHistoryPage(direction) {
+            if (direction === 'prev' && historyCurrentPage > 1) {
+                loadHistoryRecords(historyCurrentPage - 1);
+            } else if (direction === 'next') {
+                const typeFilter = document.getElementById('historyTypeFilter').value;
+                const history = typeFilter === 'all' ? 
+                    window.challengeHistory.getHistory() : 
+                    window.challengeHistory.getHistoryByType(typeFilter);
+                const totalPages = Math.ceil(history.length / historyPageSize);
+                
+                if (historyCurrentPage < totalPages) {
+                    loadHistoryRecords(historyCurrentPage + 1);
+                }
+            }
+        }
+        
+        // 删除历史记录
+        function deleteHistoryRecord(id) {
+            if (confirm('确定要删除这条记录吗？')) {
+                window.challengeHistory.deleteRecord(id);
+                loadHistoryRecords(historyCurrentPage);
+                updateHistoryStats();
+                updateHistoryCardStats();
+            }
+        }
+        
+        // 导出历史记录
+        function exportChallengeHistory() {
+            const options = ['CSV格式', 'JSON格式'];
+            const choice = confirm('选择导出格式：\n确定 = CSV\n取消 = JSON');
+            
+            let data, filename, type;
+            
+            if (choice) {
+                // CSV格式
+                data = window.challengeHistory.exportToCSV();
+                filename = `对战历史_${new Date().toLocaleDateString()}.csv`;
+                type = 'text/csv;charset=utf-8;';
+            } else {
+                // JSON格式
+                data = window.challengeHistory.exportToJSON();
+                filename = `对战历史_${new Date().toLocaleDateString()}.json`;
+                type = 'application/json;charset=utf-8;';
+            }
+            
+            // 创建下载链接
+            const blob = new Blob(['\ufeff' + data], { type: type });
+            const link = document.createElement('a');
+            link.href = URL.createObjectURL(blob);
+            link.download = filename;
+            link.click();
+            
+            // 播放语音
+            if (window.voiceReminder) {
+                window.voiceReminder.playCustom('数据导出成功！');
+            }
+        }
+        
+        // 清空历史记录
+        function clearChallengeHistory() {
+            if (confirm('确定要清空所有历史记录吗？此操作不可恢复！')) {
+                window.challengeHistory.clearHistory();
+                loadHistoryRecords(1);
+                updateHistoryStats();
+                updateHistoryCardStats();
+                
+                // 播放语音
+                if (window.voiceReminder) {
+                    window.voiceReminder.playCustom('历史记录已清空');
+                }
+            }
+        }
+        
+        // 页面加载时更新历史记录卡片
+        document.addEventListener('DOMContentLoaded', function() {
+            if (window.challengeHistory) {
+                updateHistoryCardStats();
+            }
+        });
+        
+        // ===== 成就系统功能 =====
+        function showAchievementsModal() {
+            showModal('achievementsModal');
+            
+            // 初始化成就系统
+            if (window.achievementSystem) {
+                renderAchievements('all');
+            }
+        }
+        
+        function filterAchievements(category) {
+            // 更新按钮状态
+            document.querySelectorAll('.category-btn').forEach(btn => {
+                if (btn.dataset.category === category) {
+                    btn.classList.add('active');
+                } else {
+                    btn.classList.remove('active');
+                }
+            });
+            
+            // 渲染成就列表
+            renderAchievements(category);
+        }
+        
+        function renderAchievements(category) {
+            if (!window.achievementSystem) {
+                console.warn('成就系统未初始化');
+                return;
+            }
+            
+            const achievements = window.achievementSystem.getAllAchievements();
+            const userProgress = window.achievementSystem.getUserProgress();
+            const listContainer = document.getElementById('achievementsList');
+            
+            // 筛选成就
+            const filtered = category === 'all' 
+                ? achievements 
+                : achievements.filter(a => a.category === category);
+            
+            // 统计数据
+            const unlocked = achievements.filter(a => userProgress[a.id]?.unlocked).length;
+            const totalPoints = achievements
+                .filter(a => userProgress[a.id]?.unlocked)
+                .reduce((sum, a) => sum + a.reward.points, 0);
+            
+            // 更新统计
+            document.getElementById('achievementUnlocked').textContent = unlocked;
+            document.getElementById('achievementTotal').textContent = achievements.length;
+            document.getElementById('achievementPoints').textContent = totalPoints;
+            
+            const progress = Math.round((unlocked / achievements.length) * 100);
+            document.getElementById('achievementsProgressFill').style.width = progress + '%';
+            document.getElementById('achievementsProgressText').textContent = progress + '%';
+            
+            // 渲染列表
+            if (filtered.length === 0) {
+                listContainer.innerHTML = '<div class="empty-state">暂无成就</div>';
+                return;
+            }
+            
+            listContainer.innerHTML = filtered.map(achievement => {
+                const isUnlocked = userProgress[achievement.id]?.unlocked || false;
+                const progressData = userProgress[achievement.id] || {};
+                const currentValue = progressData.progress || 0;
+                const targetValue = achievement.requirement.value;
+                const progressPercent = Math.min(100, (currentValue / targetValue) * 100);
+                
+                return `
+                    <div class="achievement-item ${isUnlocked ? 'unlocked' : ''}">
+                        <div class="achievement-icon">${achievement.icon}</div>
+                        <div class="achievement-info">
+                            <div class="achievement-name">${achievement.name}</div>
+                            <div class="achievement-desc">${achievement.description}</div>
+                            <div class="achievement-progress-bar">
+                                <div class="achievement-progress-fill" style="width: ${progressPercent}%"></div>
+                            </div>
+                            <div class="achievement-progress-text">${currentValue} / ${targetValue}</div>
+                        </div>
+                        <div class="achievement-reward">
+                            ${isUnlocked ? '✓' : '+' + achievement.reward.points}
+                        </div>
+                    </div>
+                `;
+            }).join('');
+        }
+        
+        // ===== 照片相册功能 =====
+        function showPhotoGallery() {
+            if (!window.postureMonitor) return;
+            
+            const photos = window.postureMonitor.stats.screenshots || [];
+            
+            if (photos.length === 0) {
+                alert('暂无违规记录');
+                return;
+            }
+            
+            showModal('photoModal');
+            
+            const gallery = document.getElementById('photoGallery');
+            gallery.innerHTML = photos.map((photo, index) => `
+                <div class="photo-item">
+                    <img src="${photo.dataUrl}" alt="违规记录 ${index + 1}">
+                    <div class="photo-info">
+                        <span>${photo.type === 'distance' ? '距离过近' : '姿势不正'}</span>
+                        <span>${new Date(photo.timestamp).toLocaleTimeString()}</span>
+                    </div>
+                </div>
+            `).join('');
+        }
+        
+        function downloadAllPhotos() {
+            if (!window.postureMonitor) return;
+            
+            const photos = window.postureMonitor.stats.screenshots || [];
+            
+            if (photos.length === 0) {
+                alert('暂无照片可下载');
+                return;
+            }
+            
+            photos.forEach((photo, index) => {
+                const link = document.createElement('a');
+                link.href = photo.dataUrl;
+                link.download = `violation_${index + 1}_${Date.now()}.png`;
+                link.click();
+            });
+            
+            alert(`已下载 ${photos.length} 张照片`);
+        }
+        
+        function clearAllPhotos() {
+            if (!confirm('确定要清空所有违规记录吗？')) {
+                return;
+            }
+            
+            if (window.postureMonitor) {
+                window.postureMonitor.stats.screenshots = [];
+                updatePhotoCount();
+            }
+            
+            closeModal('photoModal');
+            alert('已清空所有违规记录');
+        }
+        
+        // ===== 在线对战房间功能 =====
+        function showCreateRoom() {
+            closeModal('onlineChallengeModal');
+            closeModal('roomListModal');
+            showModal('createRoomModal');
+        }
+        
+        function showRoomList() {
+            closeModal('onlineChallengeModal');
+            showModal('roomListModal');
+            
+            // 刷新房间列表
+            if (window.onlineChallengeManager) {
+                window.onlineChallengeManager.refreshRoomList();
+            }
+        }
+        
+        function showJoinRoom() {
+            closeModal('onlineChallengeModal');
+            showModal('joinRoomModal');
+        }
+        
+        function createOnlineRoom() {
+            const playerName = document.getElementById('hostPlayerName').value.trim() || '玩家1';
+            
+            if (window.onlineChallengeManager) {
+                window.onlineChallengeManager.createRoom(playerName);
+            }
+        }
+        
+        function joinOnlineRoom() {
+            const playerName = document.getElementById('guestPlayerName').value.trim() || '玩家2';
+            const roomId = document.getElementById('roomIdInput').value.trim();
+            
+            if (!roomId) {
+                alert('请输入房间ID');
+                return;
+            }
+            
+            if (window.onlineChallengeManager) {
+                window.onlineChallengeManager.joinRoom(roomId, playerName);
+            }
+        }
+        
+        function copyRoomId() {
+            const roomIdInput = document.getElementById('roomIdDisplay');
+            roomIdInput.select();
+            document.execCommand('copy');
+            
+            alert('房间ID已复制到剪贴板');
+        }
+        
+        function refreshRoomList() {
+            if (window.onlineChallengeManager) {
+                window.onlineChallengeManager.refreshRoomList();
+            }
+        }
+        
+        function quickMatchOnline() {
+            alert('快速匹配功能开发中...');
+        }
+        
+        function quitOnlineChallenge() {
+            if (!confirm('确定要退出对战吗？')) {
+                return;
+            }
+            
+            if (window.onlineChallengeManager) {
+                window.onlineChallengeManager.quitChallenge();
+            }
+        }
+        
+        function quitChallenge() {
+            if (!confirm('确定要退出挑战吗？')) {
+                return;
+            }
+            
+            // 停止计时器
+            if (challengeState.timer) {
+                clearInterval(challengeState.timer);
+            }
+            if (challengeState.scoreInterval) {
+                clearInterval(challengeState.scoreInterval);
+            }
+            
+            // 停止监测
+            if (window.postureMonitor && window.postureMonitor.isMonitoring) {
+                window.postureMonitor.stopMonitoring();
+            }
+            
+            // 隐藏对战界面
+            document.getElementById('challengeBattleOverlay').classList.remove('show');
+            
+            // 重置状态
+            challengeState = {
+                mode: null,
+                player1: { name: '玩家1', score: 0, distanceViolations: 0, postureViolations: 0 },
+                player2: { name: '玩家2', score: 0, distanceViolations: 0, postureViolations: 0 },
+                currentPlayer: 1,
+                startTime: null,
+                duration: 5 * 60,
+                timer: null,
+                scoreInterval: null
+            };
+        }
+        
+        function selectChallengeMode(mode) {
+            closeModal('challengeModal');
+            
+            if (mode === 'local') {
+                showModal('challengePrepareModal');
+            } else if (mode === 'online') {
+                showModal('onlineChallengeModal');
+            }
+        }
+        
+        function showChallengeHistory() {
+            if (window.challengeHistory) {
+                window.challengeHistory.showHistory();
+            } else {
+                alert('暂无对战历史');
+            }
+        }
+    </script>
+</body>
+
+</html>
